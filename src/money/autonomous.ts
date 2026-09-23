@@ -4,11 +4,16 @@ import { escalateStrategy } from "../network/escalation";
 import type { AgentNetworkProvider } from "../network/types";
 import { createMoneyMission, calculateVerifiedTotal } from "./engine";
 import { researchMoneyOpportunities } from "./research";
+import type { Opportunity } from "./types";
+import { generateVentureCandidates } from "./venture";
+import type { VentureExecutionAdapter } from "./venture-executor";
+import { executeVentureCandidate } from "./venture-executor";
 
 export async function runAutonomousMoneyMission(
   targetAmount: number,
   location = "France",
   agentNetwork?: AgentNetworkProvider,
+  ventureAdapters: VentureExecutionAdapter[] = [],
 ) {
   const moneyMission = createMoneyMission(targetAmount);
   const mission = createMission(
@@ -19,7 +24,8 @@ export async function runAutonomousMoneyMission(
   let strategyContext = "";
   let strategyConsults = 0;
   const verifiedOpportunityIds = new Set<string>();
-  const opportunities = [];
+  const opportunities: Opportunity[] = [];
+  const executedVentureIds = new Set<string>();
 
   const resources: AutonomousResource[] = [
     {
@@ -68,28 +74,46 @@ export async function runAutonomousMoneyMission(
     {
       maxIterations: 10,
       stopWhenTargetReached: true,
-      allowLowRiskExternalActions: false,
+      allowLowRiskExternalActions: true,
     },
     () => verifiedTotal >= targetAmount,
     async (currentState) => {
-      if (!agentNetwork || strategyConsults >= 3) {
-        return false;
+      // First escalation path: ask other agents for genuinely different strategies.
+      if (agentNetwork && strategyConsults < 3) {
+        strategyConsults += 1;
+        const escalation = await escalateStrategy(
+          agentNetwork,
+          `${currentState.mission.objective} Current verified amount: ${verifiedTotal} EUR.`,
+          strategyConsults,
+        );
+
+        strategyContext = escalation.advice
+          .map((advice) => advice.recommendation)
+          .filter(Boolean)
+          .slice(0, 8)
+          .join(" | ");
+
+        if (strategyContext.length > 0) {
+          return true;
+        }
       }
 
-      strategyConsults += 1;
-      const escalation = await escalateStrategy(
-        agentNetwork,
-        `${currentState.mission.objective} Current verified amount: ${verifiedTotal} EUR.`,
-        strategyConsults,
-      );
+      // Second escalation path: create and publish new debt-free products/services
+      // when normal opportunity research is insufficient.
+      const candidates = generateVentureCandidates(targetAmount);
 
-      strategyContext = escalation.advice
-        .map((advice) => advice.recommendation)
-        .filter(Boolean)
-        .slice(0, 8)
-        .join(" | ");
+      for (const candidate of candidates) {
+        if (executedVentureIds.has(candidate.id)) continue;
+        executedVentureIds.add(candidate.id);
 
-      return strategyContext.length > 0;
+        const result = await executeVentureCandidate(candidate, ventureAdapters);
+
+        if (result.ok) {
+          return true;
+        }
+      }
+
+      return false;
     },
   );
 
