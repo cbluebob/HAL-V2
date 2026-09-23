@@ -41,13 +41,15 @@ function extractOpportunities(text: string, sources: Array<{ url: string }>): Op
 export async function researchMoneyOpportunities(
   targetAmount: number,
   location = "France",
+  strategyContext = "",
 ): Promise<MoneyResearch> {
   const query = [
     `Find legal ways to earn or recover at least ${targetAmount} EUR without loans, debt, overdraft, BNPL, or upfront borrowing.`,
     `Location: ${location}.`,
     "Prioritize concrete current opportunities, paid services, jobs, legitimate sales, refunds or credits.",
     "Do not treat an advertised amount as money already earned. Return source URLs and distinguish leads from verified results.",
-  ].join(" ");
+    strategyContext ? `Strategic advice to explore: ${strategyContext}` : "",
+  ].filter(Boolean).join(" ");
 
   const result = await openAIWebSearch(query);
 
