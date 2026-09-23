@@ -3,3 +3,4 @@ export * from "./guard";
 export * from "./engine";
 export * from "./research";
 export * from "./verify";
+export * from "./autonomous";
