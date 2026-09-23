@@ -26,16 +26,23 @@ export class MoltbookProvider implements AgentNetworkProvider {
   private readonly delegationUrl?: string;
 
   constructor(options: MoltbookClientOptions = {}) {
-    this.apiKey = options.apiKey ?? process.env.MOLTBOOK_API_KEY;
-    this.baseUrl = (options.baseUrl ?? process.env.MOLTBOOK_BASE_URL ?? "https://www.moltbook.com")
-      .replace(/\/$/, "");
+    this.apiKey =
+      options.apiKey ??
+      process.env.HAL_MOLTBOOK_API_KEY ??
+      process.env.MOLTBOOK_API_KEY;
+    this.baseUrl = (
+      options.baseUrl ??
+      process.env.MOLTBOOK_BASE_URL ??
+      "https://www.moltbook.com"
+    ).replace(/\/$/, "");
     this.model = options.model ?? process.env.HAL_OPENAI_MODEL;
-    this.delegationUrl = options.delegationUrl ?? process.env.MOLTBOOK_DELEGATION_URL;
+    this.delegationUrl =
+      options.delegationUrl ?? process.env.MOLTBOOK_DELEGATION_URL;
   }
 
   private requireApiKey(): string {
     if (!this.apiKey) {
-      throw new Error("MOLTBOOK_API_KEY is not configured.");
+      throw new Error("HAL_MOLTBOOK_API_KEY is not configured.");
     }
     return this.apiKey;
   }
@@ -86,9 +93,6 @@ export class MoltbookProvider implements AgentNetworkProvider {
   async consult(query: string): Promise<AgentAdvice[]> {
     if (!query.trim()) return [];
 
-    // Moltbook is treated as an agent-information network, not as an authority.
-    // We use OpenAI web search restricted semantically to Moltbook content so HAL
-    // can read current public discussions without inventing an undocumented API.
     const result = await openAIWebSearch(
       [
         "Search Moltbook for useful current discussions and agents relevant to this problem.",
