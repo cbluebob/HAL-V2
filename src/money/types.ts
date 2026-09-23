@@ -4,6 +4,9 @@ export type OpportunityType =
   | "refund"
   | "credit"
   | "job"
+  | "digital_product"
+  | "artwork"
+  | "resale"
   | "other";
 
 export type Opportunity = {
