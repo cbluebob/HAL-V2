@@ -4,3 +4,4 @@ export * from "./engine";
 export * from "./research";
 export * from "./verify";
 export * from "./autonomous";
+export * from "./payment";
