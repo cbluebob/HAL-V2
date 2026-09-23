@@ -8,3 +8,4 @@ export * from "./memory/journal";
 export * from "./tools";
 export * from "./money";
 export * from "./adapters";
+export * from "./network";
