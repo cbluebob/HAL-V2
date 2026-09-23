@@ -12,6 +12,7 @@ export type ActionResult = {
   action: string;
   message: string;
   verified: boolean;
+  progressed?: boolean;
   data?: unknown;
 };
 
