@@ -10,8 +10,12 @@ export type RuntimeHealth = {
 export function getRuntimeHealth(
   env: NodeJS.ProcessEnv = process.env,
 ): RuntimeHealth {
-  const openAIConfigured = Boolean(env.OPENAI_API_KEY);
-  const moltbookConfigured = Boolean(env.MOLTBOOK_API_KEY);
+  const openAIConfigured = Boolean(
+    env.HAL_OPENAI_API_KEY ?? env.OPENAI_API_KEY,
+  );
+  const moltbookConfigured = Boolean(
+    env.HAL_MOLTBOOK_API_KEY ?? env.MOLTBOOK_API_KEY,
+  );
   const moltbookDelegationConfigured = Boolean(env.MOLTBOOK_DELEGATION_URL);
 
   return {
