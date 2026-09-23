@@ -91,11 +91,11 @@ export async function runAutonomousMission(
       state.lastMessage = result.message;
 
       if (result.ok && result.verified) {
-        progressed = true;
+        progressed = result.progressed ?? true;
         appendEvent({
           id: crypto.randomUUID(),
           timestamp: new Date().toISOString(),
-          type: "resource.completed",
+          type: result.progressed === false ? "resource.completed" : "resource.progressed",
           message: result.message,
           missionId: mission.id,
           verified: true,
@@ -113,7 +113,7 @@ export async function runAutonomousMission(
           id: crypto.randomUUID(),
           timestamp: new Date().toISOString(),
           type: "autonomy.strategy_changed",
-          message: "No verified progress. A new strategy was requested before continuing.",
+          message: "No verified objective progress. A new strategy was requested before continuing.",
           missionId: mission.id,
           verified: true,
         });
@@ -126,7 +126,7 @@ export async function runAutonomousMission(
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
         type: "autonomy.blocked",
-        message: "No authorized resource produced a verified progression and no new strategy was available.",
+        message: "No authorized resource produced verified objective progress and no new strategy was available.",
         missionId: mission.id,
         verified: true,
       });
