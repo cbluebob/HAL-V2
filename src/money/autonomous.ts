@@ -1,6 +1,11 @@
 import { createMission } from "../core/mission-engine";
 import { runAutonomousMission, type AutonomousResource } from "../core/autonomy";
 import { escalateStrategy } from "../network/escalation";
+import {
+  delegateThroughColleague,
+  findAgentCapabilities,
+  type CapabilityProvider,
+} from "../network/capability";
 import type { AgentNetworkProvider } from "../network/types";
 import { createMoneyMission, calculateVerifiedTotal } from "./engine";
 import { researchMoneyOpportunities } from "./research";
@@ -23,6 +28,7 @@ export async function runAutonomousMoneyMission(
   let verifiedTotal = 0;
   let strategyContext = "";
   let strategyConsults = 0;
+  let delegatedTasks = 0;
   const verifiedOpportunityIds = new Set<string>();
   const opportunities: Opportunity[] = [];
   const executedVentureIds = new Set<string>();
@@ -78,7 +84,7 @@ export async function runAutonomousMoneyMission(
     },
     () => verifiedTotal >= targetAmount,
     async (currentState) => {
-      // First escalation path: ask other agents for genuinely different strategies.
+      // First escalation path: ask colleagues for genuinely different strategies.
       if (agentNetwork && strategyConsults < 3) {
         strategyConsults += 1;
         const escalation = await escalateStrategy(
@@ -98,8 +104,34 @@ export async function runAutonomousMoneyMission(
         }
       }
 
-      // Second escalation path: create and publish new debt-free products/services
-      // when normal opportunity research is insufficient.
+      // Second escalation path: ask colleagues who have access to a resource HAL lacks.
+      if (agentNetwork) {
+        const provider = agentNetwork as CapabilityProvider;
+        const capabilities = await findAgentCapabilities(provider, {
+          taskId: `${mission.id}-capability-${delegatedTasks + 1}`,
+          objective: currentState.mission.objective,
+          resourceType: "website",
+          requiredAction: "execute",
+        });
+
+        if (capabilities.length > 0) {
+          const capability = capabilities[0];
+          delegatedTasks += 1;
+          const result = await delegateThroughColleague(provider, capability, {
+            taskId: `${mission.id}-delegated-${delegatedTasks}`,
+            objective: currentState.mission.objective,
+            resourceType: capability.resourceType,
+            target: capability.target,
+            requiredAction: "execute",
+          });
+
+          if (result.executed) {
+            return true;
+          }
+        }
+      }
+
+      // Third escalation path: create and publish new debt-free products/services.
       const candidates = generateVentureCandidates(targetAmount);
 
       for (const candidate of candidates) {
@@ -123,6 +155,7 @@ export async function runAutonomousMoneyMission(
     verifiedTotal,
     targetReached: verifiedTotal >= targetAmount,
     strategyConsults,
+    delegatedTasks,
     opportunities,
   };
 }
