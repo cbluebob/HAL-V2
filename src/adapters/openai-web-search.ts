@@ -12,21 +12,27 @@ type OpenAIResponse = {
   }>;
 };
 
+function resolveOpenAIKey(explicit?: string): string | undefined {
+  // HAL_OPENAI_API_KEY is the hosted-environment-safe secret name.
+  // OPENAI_API_KEY remains a compatibility fallback for self-hosted runtimes.
+  return explicit ?? process.env.HAL_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
+}
+
 export async function openAIWebSearch(
   query: string,
   options: { apiKey?: string; model?: string } = {},
 ): Promise<WebSearchResult> {
   if (!query.trim()) throw new Error("Search query cannot be empty.");
 
-  const apiKey = options.apiKey ?? process.env.OPENAI_API_KEY;
+  const apiKey = resolveOpenAIKey(options.apiKey);
   if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not configured. Search was not executed.");
+    throw new Error("HAL_OPENAI_API_KEY is not configured. Search was not executed.");
   }
 
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
