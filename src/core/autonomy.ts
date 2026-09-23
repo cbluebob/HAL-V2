@@ -23,11 +23,16 @@ export type AutonomyState = {
   lastMessage?: string;
 };
 
+export type NoProgressHandler = (
+  state: AutonomyState,
+) => Promise<boolean>;
+
 export async function runAutonomousMission(
   mission: Mission,
   resources: AutonomousResource[],
   policy: AutonomyPolicy,
   objectiveReached: (state: AutonomyState) => boolean,
+  onNoProgress?: NoProgressHandler,
 ): Promise<AutonomyState> {
   let state: AutonomyState = {
     mission: { ...mission, status: "running" },
@@ -99,13 +104,29 @@ export async function runAutonomousMission(
     }
 
     if (!progressed) {
+      const strategyChanged = onNoProgress
+        ? await onNoProgress(state)
+        : false;
+
+      if (strategyChanged) {
+        appendEvent({
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          type: "autonomy.strategy_changed",
+          message: "No verified progress. A new strategy was requested before continuing.",
+          missionId: mission.id,
+          verified: true,
+        });
+        continue;
+      }
+
       state.blocked = true;
       state.mission = { ...state.mission, status: "blocked" };
       appendEvent({
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
         type: "autonomy.blocked",
-        message: "No authorized resource produced a verified progression.",
+        message: "No authorized resource produced a verified progression and no new strategy was available.",
         missionId: mission.id,
         verified: true,
       });
