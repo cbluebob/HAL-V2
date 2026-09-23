@@ -1,11 +1,14 @@
 import { createMission } from "../core/mission-engine";
 import { runAutonomousMission, type AutonomousResource } from "../core/autonomy";
+import { escalateStrategy } from "../network/escalation";
+import type { AgentNetworkProvider } from "../network/types";
 import { createMoneyMission, calculateVerifiedTotal } from "./engine";
 import { researchMoneyOpportunities } from "./research";
 
 export async function runAutonomousMoneyMission(
   targetAmount: number,
   location = "France",
+  agentNetwork?: AgentNetworkProvider,
 ) {
   const moneyMission = createMoneyMission(targetAmount);
   const mission = createMission(
@@ -13,6 +16,10 @@ export async function runAutonomousMoneyMission(
   );
 
   let verifiedTotal = 0;
+  let strategyContext = "";
+  let strategyConsults = 0;
+  const verifiedOpportunityIds = new Set<string>();
+  const opportunities = [];
 
   const resources: AutonomousResource[] = [
     {
@@ -20,25 +27,31 @@ export async function runAutonomousMoneyMission(
       description: "Research current legal debt-free opportunities.",
       risk: "low",
       async execute() {
-        const research = await researchMoneyOpportunities(targetAmount, location);
+        const previousTotal = verifiedTotal;
+        const research = await researchMoneyOpportunities(
+          targetAmount,
+          location,
+          strategyContext,
+        );
 
         for (const opportunity of research.opportunities) {
-          // Discovery is never treated as verification.
-          // A future verification adapter must confirm the opportunity before it counts.
-          if (opportunity.verified) {
-            const updated = {
-              ...moneyMission,
-              opportunities: [...moneyMission.opportunities, opportunity],
-            };
-            verifiedTotal = calculateVerifiedTotal(updated);
+          if (opportunity.verified && !verifiedOpportunityIds.has(opportunity.id)) {
+            verifiedOpportunityIds.add(opportunity.id);
+            opportunities.push(opportunity);
           }
         }
+
+        verifiedTotal = calculateVerifiedTotal({
+          ...moneyMission,
+          opportunities,
+        });
 
         return {
           ok: true,
           action: "money.web-research",
           message: `Research completed: ${research.opportunities.length} candidate opportunities found; ${verifiedTotal} EUR verified.`,
           verified: true,
+          progressed: verifiedTotal > previousTotal,
           data: {
             candidates: research.opportunities.length,
             verifiedTotal,
@@ -58,6 +71,26 @@ export async function runAutonomousMoneyMission(
       allowLowRiskExternalActions: false,
     },
     () => verifiedTotal >= targetAmount,
+    async (currentState) => {
+      if (!agentNetwork || strategyConsults >= 3) {
+        return false;
+      }
+
+      strategyConsults += 1;
+      const escalation = await escalateStrategy(
+        agentNetwork,
+        `${currentState.mission.objective} Current verified amount: ${verifiedTotal} EUR.`,
+        strategyConsults,
+      );
+
+      strategyContext = escalation.advice
+        .map((advice) => advice.recommendation)
+        .filter(Boolean)
+        .slice(0, 8)
+        .join(" | ");
+
+      return strategyContext.length > 0;
+    },
   );
 
   return {
@@ -65,5 +98,7 @@ export async function runAutonomousMoneyMission(
     targetAmount,
     verifiedTotal,
     targetReached: verifiedTotal >= targetAmount,
+    strategyConsults,
+    opportunities,
   };
 }
