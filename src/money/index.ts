@@ -6,5 +6,6 @@ export * from "./verify";
 export * from "./autonomous";
 export * from "./payment";
 export * from "./settlement";
+export * from "./settlement-gate";
 export * from "./venture";
 export * from "./venture-executor";
