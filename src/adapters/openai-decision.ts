@@ -54,6 +54,12 @@ function parseDecision(text: string, allowedActions: string[]): Decision {
   };
 }
 
+const SUPPORTED_MODELS: AIModel[] = [
+  "gpt-5.6-luna",
+  "gpt-5.6-sol",
+  "gpt-5.6-terra",
+];
+
 export async function openAIDecide(
   missionObjective: string,
   observation: Observation,
@@ -66,15 +72,7 @@ export async function openAIDecide(
     throw new Error("HAL_OPENAI_API_KEY is not configured. Decision was not executed.");
   }
 
-  const supportedModels: AIModel[] = [
-    "gpt-5.6-luna",
-    "gpt-5.6-sol",
-    "gpt-5.6-sol",
-    "gpt-5.6-luna",
-    "gpt-5.6-sol",
-    "gpt-5.6-terra",
-  ];
-  const preferredModel = supportedModels.includes(options.model as AIModel)
+  const preferredModel = SUPPORTED_MODELS.includes(options.model as AIModel)
     ? (options.model as AIModel)
     : undefined;
   const route = routeModel(
