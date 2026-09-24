@@ -24,10 +24,13 @@ export type MissionExecutionContext = {
   result?: ActionResult;
 };
 
+import { executeToolAction, type ToolActionRequest } from "./tool-executor";
+
 export type HALExecutionAdapters = {
   observe: (mission: Mission) => Promise<Observation>;
   decide: (context: { mission: Mission; observation: Observation }) => Promise<Decision>;
-  act: (context: { mission: Mission; decision: Decision }) => Promise<ActionResult>;
+  act?: (context: { mission: Mission; decision: Decision }) => Promise<ActionResult>;
+  toolAction?: (context: { mission: Mission; decision: Decision }) => Promise<ToolActionRequest | undefined>;
   control?: (context: { mission: Mission; result: ActionResult }) => Promise<boolean>;
   report?: (context: MissionExecutionContext) => Promise<void>;
 };
@@ -139,7 +142,22 @@ export async function executeHALMission(
       return { status: "blocked", cycles: cycle, context, reason };
     }
 
-    const result = await adapters.act({ mission, decision });
+    const result = adapters.act
+      ? await adapters.act({ mission, decision })
+      : adapters.toolAction
+        ? await executeToolAction(mission, (await adapters.toolAction({ mission, decision })) ?? {
+            toolName: decision.action,
+            input: undefined,
+            risk: decision.risk,
+            createsDebt: decision.createsDebt,
+          })
+        : ({
+            ok: false,
+            action: decision.action,
+            message: "No action adapter is configured.",
+            verified: true,
+            progressed: false,
+          } satisfies ActionResult);
     context = { ...context, result };
 
     if (!result.ok || !result.verified) {
