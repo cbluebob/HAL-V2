@@ -33,9 +33,15 @@ This is an application-level preflight guard, not a replacement for the OpenAI p
 ## Model routing
 
 HAL uses deterministic task routing to control cost:
-- Routine tasks -> GPT-6 Luna
-- Reasoning/research tasks -> GPT-6 Sol
-- Complex tasks -> GPT-6 Sol by default
-- GPT-6 Astra is opt-in through `HAL_ALLOW_EXPENSIVE_MODEL=true`
+- Routine tasks -> GPT-5.6 Luna
+- Reasoning/research tasks -> GPT-5.6 Sol
+- Complex tasks -> GPT-5.6 Sol by default
+- GPT-5.6 Terra is available as an explicit model option
 
-This keeps expensive reasoning off the default path. Model selection is based on the task text and does not require an additional classification model call.
+Model selection is based on the task text and does not require an additional classification model call.
+
+## OpenAI Hosted Agents
+
+HAL includes a hosted Agents Sessions adapter that can create a managed OpenAI environment, attach the HAL Vault, submit initial input, and consume the first-turn SSE stream.
+
+The adapter expects `HAL_AGENTS_API_KEY` (or `OPENAI_API_KEY`) outside the hosted sandbox. The hosted environment receives Vault credentials through the Agents API; HAL never stores or prints the underlying credential value.
