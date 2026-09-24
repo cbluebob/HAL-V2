@@ -1,9 +1,12 @@
 import { openAIDecide } from "../adapters/openai-decision";
 import { webSearchTool } from "../tools/web-search";
+import { registerBuiltInTools } from "../tools/builtins";
 import type { HALExecutionAdapters } from "./execution-engine";
 import type { Mission } from "./types";
 
 export function createWebResearchMissionAdapters(): HALExecutionAdapters {
+  registerBuiltInTools();
+
   return {
     async observe(mission: Mission) {
       const result = await webSearchTool.execute(
