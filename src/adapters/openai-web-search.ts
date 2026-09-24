@@ -14,10 +14,14 @@ type OpenAIResponse = {
 };
 
 function resolveOpenAIKey(explicit?: string): string | undefined {
-  // HAL_OPENAI_API_KEY is the hosted-environment-safe secret name.
-  // OPENAI_API_KEY remains a compatibility fallback for self-hosted runtimes.
   return explicit ?? process.env.HAL_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
 }
+
+const SUPPORTED_MODELS: AIModel[] = [
+  "gpt-5.6-luna",
+  "gpt-5.6-sol",
+  "gpt-5.6-terra",
+];
 
 export async function openAIWebSearch(
   query: string,
@@ -27,15 +31,7 @@ export async function openAIWebSearch(
   if (query.length > 8000) throw new Error("Search query exceeds the 8000-character safety limit.");
 
   const apiKey = resolveOpenAIKey(options.apiKey);
-  const supportedModels: AIModel[] = [
-    "gpt-5.6-luna",
-    "gpt-5.6-sol",
-    "gpt-5.6-sol",
-    "gpt-5.6-luna",
-    "gpt-5.6-sol",
-    "gpt-5.6-terra",
-  ];
-  const preferredModel = supportedModels.includes(options.model as AIModel)
+  const preferredModel = SUPPORTED_MODELS.includes(options.model as AIModel)
     ? (options.model as AIModel)
     : undefined;
   const route = routeModel(query, {
