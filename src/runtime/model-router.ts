@@ -1,3 +1,4 @@
+export type { AIModel } from "./ai-budget";
 import type { AIModel } from "./ai-budget";
 
 export type TaskClass = "routine" | "reasoning" | "complex";
