@@ -29,3 +29,13 @@ Default mission budget:
 AI resources must declare their expected model, input tokens, and output tokens through `aiEstimate`. When the budget is exhausted, HAL blocks the AI resource instead of continuing to spend.
 
 This is an application-level preflight guard, not a replacement for the OpenAI project spend controls. OpenAI project spend controls should remain configured separately as the billing backstop.
+
+## Model routing
+
+HAL uses deterministic task routing to control cost:
+- Routine tasks -> GPT-6 Luna
+- Reasoning/research tasks -> GPT-6 Sol
+- Complex tasks -> GPT-6 Sol by default
+- GPT-6 Astra is opt-in through `HAL_ALLOW_EXPENSIVE_MODEL=true`
+
+This keeps expensive reasoning off the default path. Model selection is based on the task text and does not require an additional classification model call.
