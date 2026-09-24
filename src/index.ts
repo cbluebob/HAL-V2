@@ -11,3 +11,4 @@ export * from "./money";
 export * from "./adapters";
 export * from "./network";
 export * from "./runtime";
+export * from "./core/execution-engine";
