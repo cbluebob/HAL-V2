@@ -21,14 +21,25 @@ function resolveOpenAIKey(explicit?: string): string | undefined {
 
 export async function openAIWebSearch(
   query: string,
-  options: { apiKey?: string; model?: AIModel } = {},
+  options: { apiKey?: string; model?: string } = {},
 ): Promise<WebSearchResult> {
   if (!query.trim()) throw new Error("Search query cannot be empty.");
   if (query.length > 8000) throw new Error("Search query exceeds the 8000-character safety limit.");
 
   const apiKey = resolveOpenAIKey(options.apiKey);
+  const supportedModels: AIModel[] = [
+    "gpt-6-luna",
+    "gpt-6-sol",
+    "gpt-6-astra",
+    "gpt-5.6-luna",
+    "gpt-5.6-sol",
+    "gpt-5.6-terra",
+  ];
+  const preferredModel = supportedModels.includes(options.model as AIModel)
+    ? (options.model as AIModel)
+    : undefined;
   const route = routeModel(query, {
-    preferredModel: options.model,
+    preferredModel,
     allowExpensiveModel: process.env.HAL_ALLOW_EXPENSIVE_MODEL === "true",
   });
   if (!apiKey) {
