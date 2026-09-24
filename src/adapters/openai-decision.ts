@@ -21,7 +21,7 @@ function extractText(data: OpenAIResponse): string {
     .trim();
 }
 
-function parseDecision(text: string): Decision {
+function parseDecision(text: string, allowedActions: string[]): Decision {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)?.[1] ?? text;
   const value = JSON.parse(fenced) as Partial<Decision>;
 
@@ -41,8 +41,13 @@ function parseDecision(text: string): Decision {
     throw new Error("OpenAI decision contained an invalid risk classification.");
   }
 
+  const action = value.action.trim();
+  if (allowedActions.length > 0 && !allowedActions.includes(action)) {
+    throw new Error(`OpenAI selected an action that is not allowed: ${action}`);
+  }
+
   return {
-    action: value.action.trim(),
+    action,
     reason: value.reason,
     risk: value.risk as ActionRisk,
     createsDebt: value.createsDebt === true,
@@ -112,7 +117,10 @@ export async function openAIDecide(
     throw new Error(`OpenAI decision failed (${response.status}): ${body}`);
   }
 
-  const decision = parseDecision(extractText((await response.json()) as OpenAIResponse));
+  const decision = parseDecision(
+    extractText((await response.json()) as OpenAIResponse),
+    options.allowedActions ?? [],
+  );
   decision.aiEstimate = {
     model: route.model,
     inputTokens: Math.ceil(prompt.length / 4),
