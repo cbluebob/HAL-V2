@@ -23,6 +23,7 @@ export async function openAIWebSearch(
   options: { apiKey?: string; model?: string } = {},
 ): Promise<WebSearchResult> {
   if (!query.trim()) throw new Error("Search query cannot be empty.");
+  if (query.length > 8000) throw new Error("Search query exceeds the 8000-character safety limit.");
 
   const apiKey = resolveOpenAIKey(options.apiKey);
   if (!apiKey) {
@@ -36,8 +37,10 @@ export async function openAIWebSearch(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: options.model ?? process.env.HAL_OPENAI_MODEL ?? "gpt-5.6-luna",
+      model: options.model ?? process.env.HAL_OPENAI_MODEL ?? "gpt-6-luna",
       input: query,
+      reasoning: { effort: "low" },
+      max_output_tokens: 1200,
       tools: [{ type: "web_search" }],
     }),
   });
