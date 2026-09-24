@@ -2,6 +2,7 @@ import type { ActionResult, Mission } from "./types";
 import { appendEvent } from "../memory/journal";
 import { guardAction, type ActionRisk } from "../guard/policy";
 import { AIBudgetGuard, DEFAULT_AI_BUDGET, type AICallEstimate } from "../runtime/ai-budget";
+import { executeToolAction, type ToolActionRequest } from "./tool-executor";
 
 export type Observation = {
   summary: string;
@@ -23,8 +24,6 @@ export type MissionExecutionContext = {
   decision?: Decision;
   result?: ActionResult;
 };
-
-import { executeToolAction, type ToolActionRequest } from "./tool-executor";
 
 export type HALExecutionAdapters = {
   observe: (mission: Mission) => Promise<Observation>;
@@ -142,15 +141,30 @@ export async function executeHALMission(
       return { status: "blocked", cycles: cycle, context, reason };
     }
 
+    const toolRequest = adapters.toolAction
+      ? await adapters.toolAction({ mission, decision })
+      : undefined;
+
+    if (adapters.toolAction && !toolRequest) {
+      const reason = `Decision action "${decision.action}" is not executable by the configured tool adapter.`;
+      context = {
+        ...context,
+        result: {
+          ok: false,
+          action: decision.action,
+          message: reason,
+          verified: false,
+          progressed: false,
+        },
+      };
+      await adapters.report?.({ ...context });
+      return { status: "failed", cycles: cycle, context, reason };
+    }
+
     const result = adapters.act
       ? await adapters.act({ mission, decision })
       : adapters.toolAction
-        ? await executeToolAction(mission, (await adapters.toolAction({ mission, decision })) ?? {
-            toolName: decision.action,
-            input: undefined,
-            risk: decision.risk,
-            createsDebt: decision.createsDebt,
-          })
+        ? await executeToolAction(mission, toolRequest as ToolActionRequest)
         : ({
             ok: false,
             action: decision.action,
