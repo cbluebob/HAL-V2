@@ -1,15 +1,15 @@
 import type { Tool } from "./tool";
 
-const tools = new Map<string, Tool>();
+const tools = new Map<string, Tool<any, any>>();
 
-export function registerTool(tool: Tool): void {
+export function registerTool<TInput, TOutput>(tool: Tool<TInput, TOutput>): void {
   if (tools.has(tool.name)) {
     throw new Error(`Tool already registered: ${tool.name}`);
   }
   tools.set(tool.name, tool);
 }
 
-export function getTool(name: string): Tool {
+export function getTool(name: string): Tool<any, any> {
   const tool = tools.get(name);
   if (!tool) throw new Error(`Tool not registered: ${name}`);
   return tool;
