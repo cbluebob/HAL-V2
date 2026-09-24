@@ -52,7 +52,7 @@ function parseDecision(text: string): Decision {
 export async function openAIDecide(
   missionObjective: string,
   observation: Observation,
-  options: { apiKey?: string; model?: string } = {},
+  options: { apiKey?: string; model?: string; allowedActions?: string[] } = {},
 ): Promise<Decision> {
   if (!missionObjective.trim()) throw new Error("Mission objective cannot be empty.");
 
@@ -86,6 +86,8 @@ export async function openAIDecide(
     "Never invent facts, credentials, completed actions, money, or external results.",
     "Never choose an action that creates debt or credit.",
     "Sensitive financial, legal, irreversible, or signature actions must be represented as blocked rather than executed.",
+    `Allowed actions: ${(options.allowedActions ?? []).join(", ") || "none specified"}.`,
+    "Choose only an allowed action. If no allowed action can safely advance the mission, return the first allowed action with a reason explaining the limitation.",
     "Return JSON only with: action, reason, risk, createsDebt.",
     `Mission: ${missionObjective}`,
     `Observation: ${JSON.stringify(observation)}`,
