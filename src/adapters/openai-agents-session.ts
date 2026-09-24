@@ -24,6 +24,34 @@ function resolveApiKey(explicit?: string): string {
   return key;
 }
 
+function parseSseEvents(chunk: string, pending: string): {
+  events: unknown[];
+  pending: string;
+} {
+  const combined = pending + chunk;
+  const blocks = combined.split(/\r?\n\r?\n/);
+  const nextPending = blocks.pop() ?? "";
+  const events: unknown[] = [];
+
+  for (const block of blocks) {
+    const data = block
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith("data: "))
+      .map((line) => line.slice(6))
+      .join("\n");
+
+    if (!data || data === "[DONE]") continue;
+
+    try {
+      events.push(JSON.parse(data));
+    } catch {
+      // Ignore malformed/non-JSON SSE blocks; later blocks remain usable.
+    }
+  }
+
+  return { events, pending: nextPending };
+}
+
 export async function runHostedAgentSession(
   options: HostedSessionOptions,
 ): Promise<HostedSessionResult> {
@@ -71,40 +99,43 @@ export async function runHostedAgentSession(
   const events: unknown[] = [];
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
+  let pending = "";
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    const chunk = decoder.decode(value, { stream: true });
-    for (const block of chunk.split("\n\n")) {
-      const dataLine = block.split("\n").find((line) => line.startsWith("data: "));
-      if (!dataLine) continue;
-      const raw = dataLine.slice(6);
-      try {
-        events.push(JSON.parse(raw));
-      } catch {
-        // Ignore non-JSON SSE payloads while retaining all structured events.
-      }
-    }
+    const parsed = parseSseEvents(decoder.decode(value, { stream: true }), pending);
+    events.push(...parsed.events);
+    pending = parsed.pending;
   }
 
-  const session = events.find(
-    (event): event is { id: string; status?: string } =>
-      typeof event === "object" &&
-      event !== null &&
-      "id" in event &&
-      typeof (event as { id?: unknown }).id === "string" &&
-      !("type" in event),
-  );
+  const flushed = parseSseEvents(decoder.decode(), pending);
+  events.push(...flushed.events);
 
-  const lastState = [...events].reverse().find(
-    (event): event is { status?: string } =>
-      typeof event === "object" && event !== null && "status" in event,
-  );
+  const sessionId =
+    events
+      .map((event) => {
+        if (typeof event !== "object" || event === null) return "";
+        const candidate = event as { session_id?: unknown; id?: unknown };
+        if (typeof candidate.session_id === "string") return candidate.session_id;
+        if (typeof candidate.id === "string" && candidate.id.startsWith("sess_")) return candidate.id;
+        return "";
+      })
+      .find(Boolean) ?? "";
+
+  const status =
+    [...events]
+      .reverse()
+      .map((event) =>
+        typeof event === "object" && event !== null && "status" in event
+          ? (event as { status?: unknown }).status
+          : undefined,
+      )
+      .find((value): value is string => typeof value === "string") ?? "unknown";
 
   return {
-    sessionId: session?.id ?? "",
-    status: lastState?.status ?? "unknown",
+    sessionId,
+    status,
     streamed: true,
     events,
   };
