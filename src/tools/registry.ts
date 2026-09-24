@@ -18,3 +18,7 @@ export function getTool(name: string): Tool {
 export function listTools(): string[] {
   return [...tools.keys()].sort();
 }
+
+export function hasTool(name: string): boolean {
+  return tools.has(name);
+}
