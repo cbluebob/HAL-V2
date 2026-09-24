@@ -52,7 +52,7 @@ export function routeModel(
     return {
       taskClass,
       model,
-      reasoningEffort: model === "gpt-6-astra" ? "low" : "low",
+      reasoningEffort: model === "gpt-5.6-sol" ? "low" : "low",
       rationale: "Explicit model preference supplied by the runtime.",
     };
   }
@@ -60,7 +60,7 @@ export function routeModel(
   if (taskClass === "complex" && options.allowExpensiveModel !== false) {
     return {
       taskClass,
-      model: "gpt-6-astra",
+      model: "gpt-5.6-sol",
       reasoningEffort: "low",
       rationale: "Complex or multi-step task requires the strongest reasoning tier.",
     };
@@ -69,7 +69,7 @@ export function routeModel(
   if (taskClass === "complex") {
     return {
       taskClass,
-      model: "gpt-6-sol",
+      model: "gpt-5.6-sol",
       reasoningEffort: "low",
       rationale: "Complex task uses Sol because expensive Astra routing is disabled.",
     };
@@ -78,7 +78,7 @@ export function routeModel(
   if (taskClass === "reasoning") {
     return {
       taskClass,
-      model: "gpt-6-sol",
+      model: "gpt-5.6-sol",
       reasoningEffort: "low",
       rationale: "Reasoning task uses the middle capability/cost tier.",
     };
@@ -86,7 +86,7 @@ export function routeModel(
 
   return {
     taskClass,
-    model: "gpt-6-luna",
+    model: "gpt-5.6-luna",
     reasoningEffort: "low",
     rationale: "Routine task uses the cost-efficient high-volume tier.",
   };
