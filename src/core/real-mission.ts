@@ -32,14 +32,14 @@ export function createWebResearchMissionAdapters(): HALExecutionAdapters {
       });
     },
 
-    async toolAction({ decision }) {
+    async toolAction({ mission, decision }) {
       if (decision.action !== webSearchTool.name) {
         return undefined;
       }
 
       return {
         toolName: webSearchTool.name,
-        input: { query: decision.reason },
+        input: { query: mission.objective },
         risk: "low",
         createsDebt: false,
       };
