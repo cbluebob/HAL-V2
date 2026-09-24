@@ -16,3 +16,16 @@ HAL V2 is an action-oriented personal agent.
 - Modules: Money, Secretary, Business, Hexagon, TikTok, Network
 
 This repository contains the executable foundation, not a simulated cockpit.
+
+## Cost control
+
+HAL applies a local AI budget guard before autonomous resources that declare an AI-call estimate.
+
+Default mission budget:
+- maximum 6 AI calls
+- maximum 20,000 estimated tokens
+- maximum $0.25 estimated model cost
+
+AI resources must declare their expected model, input tokens, and output tokens through `aiEstimate`. When the budget is exhausted, HAL blocks the AI resource instead of continuing to spend.
+
+This is an application-level preflight guard, not a replacement for the OpenAI project spend controls. OpenAI project spend controls should remain configured separately as the billing backstop.
