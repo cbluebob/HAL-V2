@@ -1,3 +1,4 @@
+import { routeModel, type AIModel } from "../runtime/model-router";
 export type WebSearchResult = {
   text: string;
   sources: Array<{ url: string }>;
@@ -20,12 +21,16 @@ function resolveOpenAIKey(explicit?: string): string | undefined {
 
 export async function openAIWebSearch(
   query: string,
-  options: { apiKey?: string; model?: string } = {},
+  options: { apiKey?: string; model?: AIModel } = {},
 ): Promise<WebSearchResult> {
   if (!query.trim()) throw new Error("Search query cannot be empty.");
   if (query.length > 8000) throw new Error("Search query exceeds the 8000-character safety limit.");
 
   const apiKey = resolveOpenAIKey(options.apiKey);
+  const route = routeModel(query, {
+    preferredModel: options.model,
+    allowExpensiveModel: process.env.HAL_ALLOW_EXPENSIVE_MODEL === "true",
+  });
   if (!apiKey) {
     throw new Error("HAL_OPENAI_API_KEY is not configured. Search was not executed.");
   }
@@ -37,9 +42,9 @@ export async function openAIWebSearch(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: options.model ?? process.env.HAL_OPENAI_MODEL ?? "gpt-6-luna",
+      model: route.model,
       input: query,
-      reasoning: { effort: "low" },
+      reasoning: { effort: route.reasoningEffort },
       max_output_tokens: 1200,
       tools: [{ type: "web_search" }],
     }),
