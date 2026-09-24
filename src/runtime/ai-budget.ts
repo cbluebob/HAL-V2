@@ -1,4 +1,4 @@
-export type AIModel = "gpt-6-luna" | "gpt-6-sol" | "gpt-6-astra" | "gpt-5.6-luna" | "gpt-5.6-sol" | "gpt-5.6-terra";
+export type AIModel = "gpt-5.6-luna" | "gpt-5.6-sol" | "gpt-5.6-terra";
 
 export type AICallEstimate = {
   model: AIModel;
@@ -22,9 +22,6 @@ export type AIBudgetSnapshot = {
 };
 
 const MODEL_PRICING_USD_PER_MILLION: Record<AIModel, { input: number; output: number }> = {
-  "gpt-6-luna": { input: 0.1, output: 0.5 },
-  "gpt-6-sol": { input: 2, output: 10 },
-  "gpt-6-astra": { input: 10, output: 50 },
   "gpt-5.6-luna": { input: 0.2, output: 1.2 },
   "gpt-5.6-sol": { input: 4, output: 20 },
   "gpt-5.6-terra": { input: 2, output: 12 },
