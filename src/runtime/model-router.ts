@@ -65,6 +65,15 @@ export function routeModel(
     };
   }
 
+  if (taskClass === "complex") {
+    return {
+      taskClass,
+      model: "gpt-6-sol",
+      reasoningEffort: "low",
+      rationale: "Complex task uses Sol because expensive Astra routing is disabled.",
+    };
+  }
+
   if (taskClass === "reasoning") {
     return {
       taskClass,
