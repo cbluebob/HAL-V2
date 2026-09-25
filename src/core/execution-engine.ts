@@ -288,6 +288,11 @@ export async function executeHALMission(
     await adapters.report?.({ ...context });
 
     if (result.progressed !== false) {
+      context = {
+        ...context,
+        mission: { ...context.mission, status: "completed" },
+      };
+      await adapters.report?.({ ...context });
       return {
         status: "completed",
         cycles: cycle,
