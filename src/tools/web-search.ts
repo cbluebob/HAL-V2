@@ -9,6 +9,11 @@ export type WebSearchOutput = {
   text: string;
   sources: Array<{ url: string }>;
   searched: boolean;
+  aiEstimate?: {
+    model: "gpt-5.6-luna" | "gpt-5.6-sol" | "gpt-5.6-terra";
+    inputTokens: number;
+    outputTokens: number;
+  };
 };
 
 export const webSearchTool = createTool<WebSearchInput, WebSearchOutput>({
