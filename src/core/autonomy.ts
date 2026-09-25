@@ -184,6 +184,7 @@ export async function runAutonomousMission(
         : false;
 
       if (strategyChanged) {
+        state.aiBudget = aiBudget.snapshot();
         appendEvent({
           id: crypto.randomUUID(),
           timestamp: new Date().toISOString(),
