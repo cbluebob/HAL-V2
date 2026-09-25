@@ -277,10 +277,22 @@ export async function executeHALMission(
     }
 
     let controlled: boolean;
+    if (!adapters.control) {
+      const reason = "Post-action control adapter is required before mission completion.";
+      await adapters.report?.({ ...context });
+      appendEvent({
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        type: "hal.control.failed",
+        message: reason,
+        missionId: mission.id,
+        verified: true,
+      });
+      return { status: "blocked", cycles: cycle, context, reason };
+    }
+
     try {
-      controlled = adapters.control
-        ? await adapters.control({ mission, result })
-        : result.verified;
+      controlled = await adapters.control({ mission, result });
     } catch (error) {
       const reason = `Post-action control failed: ${errorMessage(error)}`;
       await reportFailure(mission, context, adapters.report, reason, "hal.action.failed");
