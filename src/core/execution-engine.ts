@@ -70,7 +70,6 @@ async function reportFailure(
       progressed: false,
     },
   };
-  await context.mission;
   await Promise.resolve();
   appendEvent({
     id: crypto.randomUUID(),
