@@ -102,6 +102,11 @@ export async function runHostedAgentSession(
     throw new Error("Agents session response did not include an event stream.");
   }
 
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().includes("text/event-stream")) {
+    throw new Error(`Agents session response was not an SSE stream (content-type: ${contentType || "missing"}).`);
+  }
+
   const events: unknown[] = [];
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
