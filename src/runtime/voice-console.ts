@@ -33,7 +33,7 @@ small{display:block;text-align:center;color:#555;margin-top:16px}
 <main>
 <header><div id="eye"></div><div id="status">HAL_V4 — STANDBY</div></header>
 <section id="conversation"></section>
-<div class="textbox"><input id="message" type="text" placeholder="Écrivez un message à HAL..." autocomplete="off"><button id="send">ENVOYER</button></div>
+<form class="textbox" action="/test" method="get"><input id="message" name="message" type="text" placeholder="Écrivez un message à HAL..." autocomplete="off"><button id="send" type="submit">ENVOYER</button></form>
 <div class="controls">
 <button id="talk">DÉMARRER LA CONVERSATION</button><button id="stop" disabled>ARRÊTER</button>
 </div>
@@ -161,6 +161,10 @@ function collectText(value: unknown, output: string[] = []): string[] {
   return output;
 }
 
+function htmlEscape(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char);
+}
+
 function extractHALText(events: unknown[]): string {
   const candidates = collectText(events);
   const filtered = candidates.filter((text, index) => candidates.indexOf(text) === index);
@@ -183,6 +187,27 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === "GET" && req.url === "/health") {
       sendJson(res, 200, { ok: true, service: "HAL_V4 voice console" });
+      return;
+    }
+    if (req.method === "GET" && req.url?.startsWith("/test")) {
+      const url = new URL(req.url, `http://${HOST}:${PORT}`);
+      const message = url.searchParams.get("message")?.trim() ?? "";
+      if (!message) {
+        res.writeHead(200, {"Content-Type":"text/html; charset=utf-8"});
+        res.end(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>HAL Test</title><style>body{background:#030506;color:#eee;font:20px ui-monospace;padding:40px}a{color:#ff6666}</style></head><body><h1>HAL — test texte</h1><p>Message vide.</p><a href="/">Retour à la console HAL</a></body></html>`);
+        return;
+      }
+      try {
+        const result = await runHostedHALMission(message);
+        const text = result.failed || !result.completed
+          ? `Erreur HAL : session non terminée ou non vérifiée. Statut : ${String(result.status)}`
+          : extractHALText(result.events);
+        res.writeHead(200, {"Content-Type":"text/html; charset=utf-8"});
+        res.end(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>HAL Test</title><style>body{background:#030506;color:#eee;font:20px ui-monospace;padding:40px;line-height:1.6}.box{max-width:900px;margin:auto;border:1px solid #333;padding:30px}a{color:#ff6666}</style></head><body><div class="box"><h1>HAL</h1><p><strong>VOUS :</strong> ${htmlEscape(message)}</p><p><strong>HAL :</strong> ${htmlEscape(text)}</p><p><a href="/">Retour à la console HAL</a></p></div></body></html>`);
+      } catch (error) {
+        res.writeHead(500, {"Content-Type":"text/html; charset=utf-8"});
+        res.end(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>HAL Erreur</title></head><body style="background:#030506;color:#eee;font:20px ui-monospace;padding:40px"><h1>Erreur HAL</h1><pre>${htmlEscape(error instanceof Error ? error.message : "Erreur inconnue")}</pre><a href="/">Retour à la console HAL</a></body></html>`);
+      }
       return;
     }
     if (req.method === "POST" && req.url === "/api/chat") {
