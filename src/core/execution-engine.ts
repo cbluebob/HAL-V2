@@ -237,6 +237,29 @@ export async function executeHALMission(
 
     context = { ...context, result };
 
+    const actionData =
+      result.data && typeof result.data === "object"
+        ? (result.data as { aiEstimate?: AICallEstimate })
+        : undefined;
+
+    if (actionData?.aiEstimate) {
+      const budgetCheck = budget.canReserve(actionData.aiEstimate);
+      if (!budgetCheck.allowed) {
+        const reason = budgetCheck.reason;
+        await adapters.report?.({ ...context });
+        appendEvent({
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          type: "hal.ai_budget.blocked",
+          message: reason,
+          missionId: mission.id,
+          verified: true,
+        });
+        return { status: "blocked", cycles: cycle, context, reason };
+      }
+      budget.reserve(actionData.aiEstimate);
+    }
+
     if (!result.ok || !result.verified) {
       const reason = result.message || "Action was not verified.";
       await adapters.report?.({ ...context });
@@ -258,7 +281,7 @@ export async function executeHALMission(
         : result.verified;
     } catch (error) {
       const reason = `Post-action control failed: ${errorMessage(error)}`;
-      await reportFailure(mission, context, reason, "hal.action.failed");
+      await reportFailure(mission, context, adapters.report, reason, "hal.action.failed");
       return { status: "failed", cycles: cycle, context, reason };
     }
 
