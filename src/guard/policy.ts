@@ -22,11 +22,28 @@ export function guardAction(
     return { allowed: false, reason: "Sensitive action requires explicit authorization and verification." };
   }
 
-  if (action.risk === "external" && action.type.trim().length === 0) {
+  const normalizedType = action.type.trim().toLowerCase();
+
+  if (!normalizedType) {
+    return { allowed: false, reason: "Action type cannot be empty." };
+  }
+
+  if (action.risk === "external" && !normalizedType) {
     return { allowed: false, reason: "External action requires a non-empty action type." };
   }
 
-  if (action.type.toLowerCase().includes("credit") || action.type.toLowerCase().includes("loan") || action.type.toLowerCase().includes("overdraft")) {
+  const prohibitedFinancialTerms = [
+    "credit",
+    "loan",
+    "overdraft",
+    "bnpl",
+    "buy now pay later",
+    "installment",
+    "financing",
+    "revolving",
+  ];
+
+  if (prohibitedFinancialTerms.some((term) => normalizedType.includes(term))) {
     return { allowed: false, reason: "ZERO CREDIT / ZERO DEBT: prohibited financial action keyword detected." };
   }
 
