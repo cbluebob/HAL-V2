@@ -43,7 +43,10 @@ function parseDecision(text: string, allowedActions: string[]): Decision {
   }
 
   const action = value.action.trim();
-  if (allowedActions.length > 0 && !allowedActions.includes(action)) {
+  if (allowedActions.length === 0) {
+    throw new Error("No allowed actions were provided to the decision engine.");
+  }
+  if (!allowedActions.includes(action)) {
     throw new Error(`OpenAI selected an action that is not allowed: ${action}`);
   }
 
