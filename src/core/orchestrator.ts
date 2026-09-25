@@ -1,5 +1,5 @@
 import type { ActionResult, Mission } from "./types";
-import { authorizeAction } from "./mission-engine";
+import { authorizeAction, verifiedSuccess } from "./mission-engine";
 import { appendEvent } from "../memory/journal";
 
 export type MissionStep = {
@@ -67,9 +67,24 @@ export async function runMission(
       return current;
     }
 
-    const result = await step.execute();
+    let result: ActionResult;
+    try {
+      result = await step.execute();
+    } catch (error) {
+      current = { ...current, status: "failed" };
+      const message = error instanceof Error ? error.message : "Mission step execution failed.";
+      appendEvent({
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        type: "action.failed",
+        message,
+        missionId: mission.id,
+        verified: false,
+      });
+      return current;
+    }
 
-    if (!result.ok || !result.verified) {
+    if (!verifiedSuccess(result)) {
       current = { ...current, status: "failed" };
       appendEvent({
         id: crypto.randomUUID(),
