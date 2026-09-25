@@ -66,6 +66,7 @@ export async function openAIDecide(
   options: { apiKey?: string; model?: string; allowedActions?: string[] } = {},
 ): Promise<Decision> {
   if (!missionObjective.trim()) throw new Error("Mission objective cannot be empty.");
+  if (!observation.verified) throw new Error("Decision requires a verified observation.");
 
   const apiKey = resolveOpenAIKey(options.apiKey);
   if (!apiKey) {
@@ -90,7 +91,7 @@ export async function openAIDecide(
     "Never choose an action that creates debt or credit.",
     "Sensitive financial, legal, irreversible, or signature actions must be represented as blocked rather than executed.",
     `Allowed actions: ${(options.allowedActions ?? []).join(", ") || "none specified"}.`,
-    "Choose only an allowed action. If no allowed action can safely advance the mission, return the first allowed action with a reason explaining the limitation.",
+    "Choose only an allowed action. If no allowed action can safely advance the mission, return an action with createsDebt=false and explain the limitation.",
     "Return JSON only with: action, reason, risk, createsDebt.",
     `Mission: ${missionObjective}`,
     `Observation: ${JSON.stringify(observation)}`,
