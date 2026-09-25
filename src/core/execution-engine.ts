@@ -231,7 +231,7 @@ export async function executeHALMission(
             };
     } catch (error) {
       const reason = `Action execution failed: ${errorMessage(error)}`;
-      await reportFailure(mission, context, reason, "hal.action.failed");
+      await reportFailure(mission, context, adapters.report, reason, "hal.action.failed");
       return { status: "failed", cycles: cycle, context, reason };
     }
 
