@@ -1,9 +1,15 @@
 import { routeModel, type AIModel } from "../runtime/model-router";
+import { estimateTokensFromText } from "../runtime/ai-budget";
 
 export type WebSearchResult = {
   text: string;
   sources: Array<{ url: string; title?: string }>;
   searched: boolean;
+  aiEstimate?: {
+    model: AIModel;
+    inputTokens: number;
+    outputTokens: number;
+  };
 };
 
 type OpenAIResponse = {
@@ -108,5 +114,14 @@ export async function openAIWebSearch(
 
   const searched = output.some((item) => item.type === "web_search_call");
 
-  return { text, sources, searched };
+  return {
+    text,
+    sources,
+    searched,
+    aiEstimate: {
+      model: route.model,
+      inputTokens: estimateTokensFromText(query),
+      outputTokens: estimateTokensFromText(text),
+    },
+  };
 }
