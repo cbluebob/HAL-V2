@@ -45,7 +45,7 @@ function parseSseEvents(chunk: string, pending: string): {
     try {
       events.push(JSON.parse(data));
     } catch {
-      // Ignore malformed/non-JSON SSE blocks; later blocks remain usable.
+      // Preserve stream progress even if a non-JSON SSE block appears.
     }
   }
 
@@ -72,7 +72,11 @@ export async function runHostedAgentSession(
     body: JSON.stringify({
       agent: {
         model,
-        ...(options.instructions ? { instructions: options.instructions } : {}),
+        reasoning: { effort: "medium" },
+        instructions:
+          options.instructions ??
+          "You are HAL_V4. Execute the assigned mission, verify real outcomes, never invent completion, and never create credit or debt.",
+        tools: [{ type: "web_search", mode: "live" }],
       },
       environment: {
         type: "openai_hosted",
