@@ -1,15 +1,28 @@
 import { routeModel, type AIModel } from "../runtime/model-router";
+
 export type WebSearchResult = {
   text: string;
-  sources: Array<{ url: string }>;
+  sources: Array<{ url: string; title?: string }>;
   searched: boolean;
 };
 
 type OpenAIResponse = {
   output?: Array<{
     type?: string;
-    content?: Array<{ type?: string; text?: string }>;
-    action?: { type?: string; sources?: Array<{ url?: string }> };
+    content?: Array<{
+      type?: string;
+      text?: string;
+      annotations?: Array<{
+        type?: string;
+        url?: string;
+        title?: string;
+        url_citation?: { url?: string; title?: string };
+      }>;
+    }>;
+    action?: {
+      type?: string;
+      sources?: Array<{ url?: string; title?: string }>;
+    };
   }>;
 };
 
@@ -38,6 +51,7 @@ export async function openAIWebSearch(
     preferredModel,
     allowExpensiveModel: process.env.HAL_ALLOW_EXPENSIVE_MODEL === "true",
   });
+
   if (!apiKey) {
     throw new Error("HAL_OPENAI_API_KEY is not configured. Search was not executed.");
   }
@@ -54,6 +68,8 @@ export async function openAIWebSearch(
       reasoning: { effort: route.reasoningEffort },
       max_output_tokens: 1200,
       tools: [{ type: "web_search" }],
+      include: ["web_search_call.action.sources"],
+      tool_choice: "auto",
     }),
   });
 
@@ -64,16 +80,27 @@ export async function openAIWebSearch(
 
   const data = (await response.json()) as OpenAIResponse;
   const output = data.output ?? [];
+
   const text = output
     .flatMap((item) => item.content ?? [])
     .filter((part) => part.type === "output_text" && typeof part.text === "string")
     .map((part) => part.text as string)
-    .join("\n");
+    .join("\n")
+    .trim();
 
   const sources = output
-    .flatMap((item) => item.action?.sources ?? [])
-    .filter((source): source is { url: string } => typeof source.url === "string")
-    .map((source) => ({ url: source.url }));
+    .flatMap((item) => [
+      ...(item.action?.sources ?? []),
+      ...(item.content ?? []).flatMap((part) =>
+        (part.annotations ?? []).map((annotation) => ({
+          url: annotation.url ?? annotation.url_citation?.url,
+          title: annotation.title ?? annotation.url_citation?.title,
+        })),
+      ),
+    ])
+    .filter((source): source is { url: string; title?: string } => typeof source.url === "string")
+    .map((source) => ({ url: source.url, ...(source.title ? { title: source.title } : {}) }))
+    .filter((source, index, all) => all.findIndex((candidate) => candidate.url === source.url) === index);
 
   const searched = output.some((item) => item.type === "web_search_call");
 
