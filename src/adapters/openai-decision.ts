@@ -1,4 +1,5 @@
 import { routeModel, type AIModel } from "../runtime/model-router";
+import { estimateTokensFromText } from "../runtime/ai-budget";
 import type { ActionRisk } from "../guard/policy";
 import type { Decision, Observation } from "../core/execution-engine";
 
@@ -116,14 +117,17 @@ export async function openAIDecide(
     throw new Error(`OpenAI decision failed (${response.status}): ${body}`);
   }
 
+  const responseData = (await response.json()) as OpenAIResponse;
+  const responseText = extractText(responseData);
+
   const decision = parseDecision(
-    extractText((await response.json()) as OpenAIResponse),
+    responseText,
     options.allowedActions ?? [],
   );
   decision.aiEstimate = {
     model: route.model,
-    inputTokens: Math.ceil(prompt.length / 4),
-    outputTokens: 500,
+    inputTokens: estimateTokensFromText(prompt),
+    outputTokens: estimateTokensFromText(responseText),
   };
   return decision;
 }
