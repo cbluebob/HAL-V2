@@ -112,7 +112,7 @@ stop.onclick=()=>{conversationMode=false;try{recognition&&recognition.stop()}cat
 </html>`;
 
 
-async function transcribeRequest(req){
+async function transcribeRequest(req: IncomingMessage): Promise<string>{
   const chunks=[]; for await(const chunk of req) chunks.push(Buffer.from(chunk));
   const contentType=String(req.headers["content-type"]||"");
   if(!contentType.startsWith("multipart/form-data")) throw new Error("Audio upload must be multipart/form-data.");
