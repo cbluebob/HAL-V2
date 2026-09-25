@@ -15,3 +15,4 @@ export * from "./core/execution-engine";
 export * from "./core/tool-executor";
 export * from "./core/real-mission";
 export * from "./core/hosted-hal";
+export * from "./core/hosted-vault-check";
