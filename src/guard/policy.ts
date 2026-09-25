@@ -28,9 +28,6 @@ export function guardAction(
     return { allowed: false, reason: "Action type cannot be empty." };
   }
 
-  if (action.risk === "external" && !normalizedType) {
-    return { allowed: false, reason: "External action requires a non-empty action type." };
-  }
 
   const prohibitedFinancialTerms = [
     "credit",
