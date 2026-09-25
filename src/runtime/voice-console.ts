@@ -33,7 +33,7 @@ small{display:block;text-align:center;color:#555;margin-top:16px}
 <header><div id="eye"></div><div id="status">HAL_V4 — STANDBY</div></header>
 <section id="conversation"></section>
 <div class="controls">
-<button id="talk">PARLER À HAL</button>
+<button id="talk">DÉMARRER LA CONVERSATION</button>
 <button id="stop" disabled>ARRÊTER</button>
 </div>
 <small>La clé API reste côté serveur. La voix est une interprétation synthétique, pas l'imitation d'un comédien.</small>
@@ -41,37 +41,48 @@ small{display:block;text-align:center;color:#555;margin-top:16px}
 <script>
 const eye=document.getElementById("eye"),status=document.getElementById("status"),conversation=document.getElementById("conversation"),talk=document.getElementById("talk"),stop=document.getElementById("stop");
 const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-let recognition=null, speaking=false;
+let recognition=null, speaking=false, conversationMode=false, restarting=false;
+const history=[];
 function add(who,text){const p=document.createElement("p");p.className="line "+(who==="HAL"?"hal":"you");p.textContent=who+": "+text;conversation.appendChild(p);conversation.scrollTop=conversation.scrollHeight;}
+function startListening(){
+  if(!recognition||speaking||!conversationMode||restarting)return;
+  restarting=true;
+  try{recognition.start()}catch{}
+  setTimeout(()=>{restarting=false},300);
+}
 async function speak(text){
   const r=await fetch("/api/speak",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text})});
   if(!r.ok) throw new Error(await r.text());
   const blob=await r.blob(), url=URL.createObjectURL(blob), audio=new Audio(url);
   speaking=true; stop.disabled=false; status.textContent="HAL_V4 — RÉPONSE";
-  audio.onended=()=>{speaking=false;stop.disabled=true;URL.revokeObjectURL(url);status.textContent="HAL_V4 — STANDBY"};
-  audio.play(); window.__halAudio=audio;
+  audio.onended=()=>{speaking=false;URL.revokeObjectURL(url);if(conversationMode){status.textContent="HAL_V4 — ÉCOUTE";startListening()}else{stop.disabled=true;status.textContent="HAL_V4 — STANDBY"}};
+  audio.onerror=()=>{speaking=false;URL.revokeObjectURL(url);status.textContent="HAL_V4 — ERREUR AUDIO";if(conversationMode)startListening()};
+  await audio.play(); window.__halAudio=audio;
 }
 async function ask(text){
-  add("VOUS",text);status.textContent="HAL_V4 — ANALYSE";talk.disabled=true;stop.disabled=false;eye.classList.remove("listening");
+  const clean=text.trim(); if(!clean)return;
+  add("VOUS",clean); history.push({role:"user",content:clean});
+  status.textContent="HAL_V4 — ANALYSE"; talk.disabled=true; stop.disabled=false; eye.classList.remove("listening");
   try{
-    const r=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({message:text})});
+    const context=history.slice(-8).map(m=>m.role==="user"?"Utilisateur: "+m.content:"HAL: "+m.content).join("\n");
+    const prompt="Conserve le contexte de cette conversation et réponds naturellement en français.\n\n"+context;
+    const r=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({message:prompt})});
     const data=await r.json(); if(!r.ok) throw new Error(data.error||"Erreur HAL");
-    add("HAL",data.text); await speak(data.text);
-  }catch(e){add("HAL",String(e.message||e));status.textContent="HAL_V4 — ERREUR"}
-  finally{talk.disabled=false;stop.disabled=false}
+    history.push({role:"assistant",content:data.text}); add("HAL",data.text); await speak(data.text);
+  }catch(e){add("HAL",String(e.message||e));status.textContent="HAL_V4 — ERREUR";conversationMode=false;talk.disabled=false}
 }
 if(!Recognition){
   talk.disabled=true; status.textContent="NAVIGATEUR SANS RECONNAISSANCE VOCALE";
   add("HAL","La reconnaissance vocale de ce navigateur n'est pas disponible. Utilisez un navigateur compatible SpeechRecognition.");
 }else{
   recognition=new Recognition(); recognition.lang="fr-FR"; recognition.interimResults=false; recognition.continuous=false;
-  recognition.onstart=()=>{eye.classList.add("listening");status.textContent="HAL_V4 — ÉCOUTE";talk.disabled=true;stop.disabled=false};
+  recognition.onstart=()=>{restarting=false;eye.classList.add("listening");status.textContent="HAL_V4 — ÉCOUTE";talk.disabled=true;stop.disabled=false};
   recognition.onresult=e=>ask(e.results[0][0].transcript);
-  recognition.onerror=e=>{status.textContent="HAL_V4 — MICROPHONE: "+e.error;talk.disabled=false};
-  recognition.onend=()=>{eye.classList.remove("listening");if(!speaking&&status.textContent==="HAL_V4 — ÉCOUTE")status.textContent="HAL_V4 — STANDBY";talk.disabled=false};
-  talk.onclick=()=>recognition.start();
+  recognition.onerror=e=>{eye.classList.remove("listening");if(conversationMode&&e.error!=="aborted"){status.textContent="HAL_V4 — MICROPHONE: "+e.error;setTimeout(startListening,800)}else{talk.disabled=false}};
+  recognition.onend=()=>{eye.classList.remove("listening");if(conversationMode&&!speaking)setTimeout(startListening,250)};
+  talk.onclick=()=>{conversationMode=true;status.textContent="HAL_V4 — ÉCOUTE";startListening()};
 }
-stop.onclick=()=>{try{recognition&&recognition.stop()}catch{};if(window.__halAudio){window.__halAudio.pause();window.__halAudio.currentTime=0;window.__halAudio=null}speaking=false;status.textContent="HAL_V4 — STANDBY";talk.disabled=false;stop.disabled=true};
+stop.onclick=()=>{conversationMode=false;try{recognition&&recognition.stop()}catch{};if(window.__halAudio){window.__halAudio.pause();window.__halAudio.currentTime=0;window.__halAudio=null}speaking=false;eye.classList.remove("listening");status.textContent="HAL_V4 — STANDBY";talk.disabled=false;stop.disabled=true};
 </script>
 </body>
 </html>`;
