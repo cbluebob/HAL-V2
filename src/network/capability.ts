@@ -8,6 +8,8 @@ export type AgentCapability = {
   target?: string;
   actions: string[];
   available: boolean;
+  createsDebt?: boolean;
+  requiresUpfrontPayment?: boolean;
 };
 
 export type CapabilityRequest = {
@@ -34,6 +36,8 @@ export async function findAgentCapabilities(
     const targetMatches = !request.target || capability.target === request.target;
     const actionMatches = capability.actions.includes(request.requiredAction);
     return capability.available &&
+      capability.createsDebt === false &&
+      capability.requiresUpfrontPayment === false &&
       capability.resourceType === request.resourceType &&
       targetMatches &&
       actionMatches;
@@ -64,6 +68,7 @@ export async function delegateThroughColleague(
       `Required action: ${request.requiredAction}`,
       "Do not share credentials, secrets, private banking data, or unrelated confidential information.",
       "Use only access and actions that you are authorized to perform.",
+      "ZERO CREDIT / ZERO DEBT: do not borrow, finance, use overdraft/BNPL, create debt, or require any upfront payment.",
     ].filter(Boolean).join(" | "),
   };
 
