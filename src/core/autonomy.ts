@@ -48,6 +48,16 @@ export async function runAutonomousMission(
   objectiveReached: (state: AutonomyState) => boolean,
   onNoProgress?: NoProgressHandler,
 ): Promise<AutonomyState> {
+  if (!Number.isInteger(policy.maxIterations) || policy.maxIterations < 1) {
+    throw new Error("maxIterations must be a positive integer.");
+  }
+  if (typeof policy.stopWhenTargetReached !== "boolean") {
+    throw new Error("stopWhenTargetReached must be boolean.");
+  }
+  if (typeof policy.allowLowRiskExternalActions !== "boolean") {
+    throw new Error("allowLowRiskExternalActions must be boolean.");
+  }
+
   const aiBudget = new AIBudgetGuard(policy.aiBudget ?? DEFAULT_AI_BUDGET);
 
   let state: AutonomyState = {
