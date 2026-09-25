@@ -139,6 +139,12 @@ export async function runHostedAgentSession(
       )
       .find((value): value is string => typeof value === "string") ?? "unknown";
 
+  const sessionError = events.find((event) => {
+    if (typeof event !== "object" || event === null) return false;
+    const candidate = event as { error?: unknown };
+    return Boolean(candidate.error);
+  });
+
   const eventTypes = events
     .map((event) =>
       typeof event === "object" && event !== null && "type" in event
@@ -149,7 +155,8 @@ export async function runHostedAgentSession(
 
   const failed =
     eventTypes.some((type) => type.includes("error") || type.includes("failed")) ||
-    status === "failed";
+    status === "failed" ||
+    Boolean(sessionError);
 
   const completed =
     !failed &&
