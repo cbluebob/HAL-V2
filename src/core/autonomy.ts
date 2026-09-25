@@ -171,6 +171,13 @@ export async function runAutonomousMission(
 
     if (state.blocked) break;
 
+    if (policy.stopWhenTargetReached && objectiveReached(state)) {
+      state.objectiveReached = true;
+      state.mission = { ...state.mission, status: "completed" };
+      state.aiBudget = aiBudget.snapshot();
+      break;
+    }
+
     if (!progressed) {
       const strategyChanged = onNoProgress
         ? await onNoProgress(state)
