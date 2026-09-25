@@ -80,7 +80,7 @@ export async function runAutonomousMission(
   while (state.iteration < policy.maxIterations) {
     state.iteration += 1;
 
-    if (objectiveReached(state)) {
+    if (policy.stopWhenTargetReached && objectiveReached(state)) {
       state.objectiveReached = true;
       state.mission = { ...state.mission, status: "completed" };
       state.aiBudget = aiBudget.snapshot();
