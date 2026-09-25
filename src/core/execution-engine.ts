@@ -285,13 +285,19 @@ export async function executeHALMission(
       verified: true,
     });
 
-    await adapters.report?.({ ...context });
-
     if (result.progressed !== false) {
       context = {
         ...context,
         mission: { ...context.mission, status: "completed" },
       };
+      appendEvent({
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        type: "hal.execution.completed",
+        message: "Mission completed after verified control.",
+        missionId: mission.id,
+        verified: true,
+      });
       await adapters.report?.({ ...context });
       return {
         status: "completed",
@@ -300,6 +306,8 @@ export async function executeHALMission(
         reason: "Objective step completed and verified.",
       };
     }
+
+    await adapters.report?.({ ...context });
   }
 
   context = {
