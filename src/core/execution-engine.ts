@@ -64,6 +64,7 @@ async function reportFailure(
 ): Promise<void> {
   const failedContext: MissionExecutionContext = {
     ...context,
+    mission: { ...context.mission, status: "failed" },
     result: {
       ok: false,
       action: context.decision?.action ?? "unknown",
