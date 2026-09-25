@@ -3,8 +3,15 @@ import type { JournalEvent } from "../core/types";
 const events: JournalEvent[] = [];
 
 export function appendEvent(event: JournalEvent): void {
-  if (!event.verified && event.type === "action.completed") {
-    throw new Error("Unverified actions cannot be recorded as completed.");
+  const completionTypes = new Set([
+    "action.completed",
+    "mission.completed",
+    "hal.execution.completed",
+    "resource.completed",
+  ]);
+
+  if (!event.verified && completionTypes.has(event.type)) {
+    throw new Error("Unverified events cannot be recorded as completed.");
   }
   events.push({ ...event });
 }
