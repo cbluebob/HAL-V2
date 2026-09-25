@@ -21,11 +21,17 @@ export function authorizeAction(action: {
 }
 
 export function verifiedSuccess(result: ActionResult): boolean {
-  return (
-    result.ok === true &&
-    result.verified === true &&
-    result.progressed !== false &&
-    typeof result.action === "string" &&
-    result.action.trim().length > 0
-  );
+  if (
+    result.ok !== true ||
+    result.verified !== true ||
+    result.progressed === false ||
+    typeof result.action !== "string" ||
+    result.action.trim().length === 0 ||
+    typeof result.message !== "string" ||
+    result.message.trim().length === 0
+  ) {
+    return false;
+  }
+
+  return true;
 }
