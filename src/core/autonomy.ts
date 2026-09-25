@@ -1,6 +1,7 @@
 import type { Mission, ActionResult } from "./types";
 import { appendEvent } from "../memory/journal";
 import { guardAction } from "../guard/policy";
+import { verifiedSuccess } from "./mission-engine";
 import {
   AIBudgetGuard,
   DEFAULT_AI_BUDGET,
@@ -123,15 +124,26 @@ export async function runAutonomousMission(
         aiBudget.reserve(resource.aiEstimate);
       }
 
-      const result = await resource.execute(
-        { objective: mission.objective, iteration: state.iteration },
-        state.mission,
-      );
+      let result: ActionResult;
+      try {
+        result = await resource.execute(
+          { objective: mission.objective, iteration: state.iteration },
+          state.mission,
+        );
+      } catch (error) {
+        result = {
+          ok: false,
+          action: resource.name,
+          message: error instanceof Error ? error.message : "Autonomous resource execution failed.",
+          verified: false,
+          progressed: false,
+        };
+      }
 
       state.lastMessage = result.message;
       state.aiBudget = aiBudget.snapshot();
 
-      if (result.ok && result.verified) {
+      if (verifiedSuccess(result)) {
         progressed = result.progressed ?? true;
         appendEvent({
           id: crypto.randomUUID(),
