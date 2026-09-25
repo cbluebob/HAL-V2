@@ -3,6 +3,7 @@ import { appendEvent } from "../memory/journal";
 import { guardAction, type ActionRisk } from "../guard/policy";
 import { AIBudgetGuard, DEFAULT_AI_BUDGET, type AICallEstimate } from "../runtime/ai-budget";
 import { executeToolAction, type ToolActionRequest } from "./tool-executor";
+import { verifiedSuccess } from "./mission-engine";
 
 export type Observation = {
   summary: string;
@@ -260,7 +261,7 @@ export async function executeHALMission(
       budget.reserve(actionData.aiEstimate);
     }
 
-    if (!result.ok || !result.verified) {
+    if (!verifiedSuccess(result)) {
       const reason = result.message || "Action was not verified.";
       await adapters.report?.({ ...context });
       appendEvent({
