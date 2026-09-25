@@ -15,6 +15,8 @@ export type HostedSessionResult = {
   sessionId: string;
   status: string;
   streamed: boolean;
+  completed: boolean;
+  failed: boolean;
   events: unknown[];
 };
 
@@ -137,10 +139,33 @@ export async function runHostedAgentSession(
       )
       .find((value): value is string => typeof value === "string") ?? "unknown";
 
+  const eventTypes = events
+    .map((event) =>
+      typeof event === "object" && event !== null && "type" in event
+        ? (event as { type?: unknown }).type
+        : undefined,
+    )
+    .filter((value): value is string => typeof value === "string");
+
+  const failed =
+    eventTypes.some((type) => type.includes("error") || type.includes("failed")) ||
+    status === "failed";
+
+  const completed =
+    !failed &&
+    (eventTypes.some(
+      (type) =>
+        type.includes("completed") ||
+        type.includes("turn.completed") ||
+        type.includes("session.completed"),
+    ) || status === "completed");
+
   return {
     sessionId,
     status,
     streamed: true,
+    completed,
+    failed,
     events,
   };
 }
