@@ -9,6 +9,7 @@ export function isEligibleOpportunity(opportunity: Opportunity): boolean {
     opportunity.estimatedAmount > 0 &&
     opportunity.currency === "EUR" &&
     isDebtFree(opportunity) &&
+    opportunity.requiresUpfrontPayment === false &&
     opportunity.verified
   );
 }
