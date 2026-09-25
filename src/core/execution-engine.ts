@@ -297,6 +297,10 @@ export async function executeHALMission(
     }
   }
 
+  context = {
+    ...context,
+    mission: { ...context.mission, status: "failed" },
+  };
   const reason = "Maximum execution cycles reached without verified completion.";
   await adapters.report?.({ ...context });
   appendEvent({
