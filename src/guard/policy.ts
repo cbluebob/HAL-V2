@@ -22,5 +22,13 @@ export function guardAction(
     return { allowed: false, reason: "Sensitive action requires explicit authorization and verification." };
   }
 
+  if (action.risk === "external" && action.type.trim().length === 0) {
+    return { allowed: false, reason: "External action requires a non-empty action type." };
+  }
+
+  if (action.type.toLowerCase().includes("credit") || action.type.toLowerCase().includes("loan") || action.type.toLowerCase().includes("overdraft")) {
+    return { allowed: false, reason: "ZERO CREDIT / ZERO DEBT: prohibited financial action keyword detected." };
+  }
+
   return { allowed: true, reason: "Action passes the current Guard policy." };
 }
