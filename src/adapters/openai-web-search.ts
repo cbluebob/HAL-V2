@@ -98,7 +98,11 @@ export async function openAIWebSearch(
         })),
       ),
     ])
-    .filter((source): source is { url: string; title?: string } => typeof source.url === "string")
+    .filter(
+      (source): source is { url: string; title?: string } =>
+        typeof source.url === "string" &&
+        /^https?:\\/\\//i.test(source.url),
+    )
     .map((source) => ({ url: source.url, ...(source.title ? { title: source.title } : {}) }))
     .filter((source, index, all) => all.findIndex((candidate) => candidate.url === source.url) === index);
 
