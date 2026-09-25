@@ -47,7 +47,7 @@ function add(who,text){const p=document.createElement("p");p.className="line "+(
 function startListening(){
   if(!recognition||speaking||!conversationMode||restarting)return;
   restarting=true;
-  try{recognition.start()}catch{}
+  try{recognition.start()}catch(error){restarting=false; status.textContent="HAL_V4 — MICRO: "+(error&&error.message?error.message:"démarrage impossible"); add("HAL","Le microphone n’a pas pu démarrer. Vérifiez l’autorisation du navigateur.");}
   setTimeout(()=>{restarting=false},300);
 }
 async function speak(text){
@@ -75,12 +75,12 @@ if(!Recognition){
   talk.disabled=true; status.textContent="NAVIGATEUR SANS RECONNAISSANCE VOCALE";
   add("HAL","La reconnaissance vocale de ce navigateur n'est pas disponible. Utilisez un navigateur compatible SpeechRecognition.");
 }else{
-  recognition=new Recognition(); recognition.lang="fr-FR"; recognition.interimResults=false; recognition.continuous=false;
+  try{ recognition=new Recognition(); recognition.lang="fr-FR"; recognition.interimResults=false; recognition.continuous=false; }catch(error){ recognition=null; talk.disabled=true; status.textContent="HAL_V4 — MICRO INDISPONIBLE"; add("HAL","Impossible d’initialiser la reconnaissance vocale : "+(error&&error.message?error.message:"erreur inconnue")); }
   recognition.onstart=()=>{restarting=false;eye.classList.add("listening");status.textContent="HAL_V4 — ÉCOUTE";talk.disabled=true;stop.disabled=false};
   recognition.onresult=e=>ask(e.results[0][0].transcript);
   recognition.onerror=e=>{eye.classList.remove("listening");if(conversationMode&&e.error!=="aborted"){status.textContent="HAL_V4 — MICROPHONE: "+e.error;setTimeout(startListening,800)}else{talk.disabled=false}};
   recognition.onend=()=>{eye.classList.remove("listening");if(conversationMode&&!speaking)setTimeout(startListening,250)};
-  talk.onclick=()=>{conversationMode=true;status.textContent="HAL_V4 — ÉCOUTE";startListening()};
+  talk.onclick=()=>{ if(!recognition){status.textContent="HAL_V4 — MICRO INDISPONIBLE";return} conversationMode=true; status.textContent="HAL_V4 — ÉCOUTE"; startListening(); };
 }
 stop.onclick=()=>{conversationMode=false;try{recognition&&recognition.stop()}catch{};if(window.__halAudio){window.__halAudio.pause();window.__halAudio.currentTime=0;window.__halAudio=null}speaking=false;eye.classList.remove("listening");status.textContent="HAL_V4 — STANDBY";talk.disabled=false;stop.disabled=true};
 </script>
