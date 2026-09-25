@@ -42,8 +42,9 @@ export function createWebResearchMissionAdapters(): HALExecutionAdapters {
       const searched = "searched" in data && data.searched === true;
       const text = "text" in data && typeof data.text === "string" && data.text.trim().length > 0;
       const sources = "sources" in data && Array.isArray(data.sources) && data.sources.length > 0;
+      const sourceCount = sources ? (data.sources as unknown[]).length : 0;
 
-      return searched && text && sources;
+      return searched && text && sourceCount >= 1;
     },
   };
 }
