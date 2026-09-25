@@ -9,23 +9,10 @@ export function createWebResearchMissionAdapters(): HALExecutionAdapters {
 
   return {
     async observe(mission: Mission) {
-      const result = await webSearchTool.execute(
-        { query: mission.objective },
-        { missionId: mission.id },
-      );
-
-      if (!result.searched || !result.text.trim()) {
-        return {
-          summary: "Web search returned no verified search result.",
-          facts: [],
-          verified: false,
-        };
-      }
-
       return {
-        summary: "Current web research completed.",
-        facts: [result.text, ...result.sources.map((source) => source.url)],
-        verified: result.sources.length > 0,
+        summary: "Mission objective received and ready for verified research.",
+        facts: [mission.objective],
+        verified: true,
       };
     },
 
@@ -36,9 +23,7 @@ export function createWebResearchMissionAdapters(): HALExecutionAdapters {
     },
 
     async toolAction({ mission, decision }) {
-      if (decision.action !== webSearchTool.name) {
-        return undefined;
-      }
+      if (decision.action !== webSearchTool.name) return undefined;
 
       return {
         toolName: webSearchTool.name,
@@ -56,7 +41,9 @@ export function createWebResearchMissionAdapters(): HALExecutionAdapters {
 
       const searched = "searched" in data && data.searched === true;
       const text = "text" in data && typeof data.text === "string" && data.text.trim().length > 0;
-      return searched && text;
+      const sources = "sources" in data && Array.isArray(data.sources) && data.sources.length > 0;
+
+      return searched && text && sources;
     },
   };
 }
