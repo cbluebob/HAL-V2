@@ -25,6 +25,7 @@ header{text-align:center}
 .controls{display:flex;gap:10px}
 button{flex:1;padding:14px;border:1px solid #444;background:#111;color:#eee;font:inherit;cursor:pointer}
 button:hover{background:#191919}button:disabled{opacity:.4;cursor:not-allowed}
+.textbox{display:flex;gap:10px;margin-bottom:10px}.textbox input{flex:1;padding:14px;border:1px solid #444;background:#111;color:#eee;font:inherit;outline:none}.textbox input:focus{border-color:#777}
 small{display:block;text-align:center;color:#555;margin-top:16px}
 </style>
 </head>
@@ -32,14 +33,14 @@ small{display:block;text-align:center;color:#555;margin-top:16px}
 <main>
 <header><div id="eye"></div><div id="status">HAL_V4 — STANDBY</div></header>
 <section id="conversation"></section>
+<div class="textbox"><input id="message" type="text" placeholder="Écrivez un message à HAL..." autocomplete="off"><button id="send">ENVOYER</button></div>
 <div class="controls">
-<button id="talk">DÉMARRER LA CONVERSATION</button><button id="text">TESTER PAR TEXTE</button>
-<button id="stop" disabled>ARRÊTER</button>
+<button id="talk">DÉMARRER LA CONVERSATION</button><button id="stop" disabled>ARRÊTER</button>
 </div>
 <small>La clé API reste côté serveur. La voix est une interprétation synthétique, pas l'imitation d'un comédien.</small>
 </main>
 <script>
-const eye=document.getElementById("eye"),status=document.getElementById("status"),conversation=document.getElementById("conversation"),talk=document.getElementById("talk"),stop=document.getElementById("stop");
+const eye=document.getElementById("eye"),status=document.getElementById("status"),conversation=document.getElementById("conversation"),talk=document.getElementById("talk"),stop=document.getElementById("stop"),messageInput=document.getElementById("message"),send=document.getElementById("send");
 const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
 let recognition=null, recorder=null, recorderStream=null, speaking=false, conversationMode=false, restarting=false;
 const history=[];
@@ -105,7 +106,10 @@ if(!Recognition){
   recognition.onend=()=>{eye.classList.remove("listening");if(conversationMode&&!speaking)setTimeout(startListening,250)};
   talk.onclick=()=>{conversationMode=true;if(recognition){status.textContent="HAL_V4 — ÉCOUTE";startListening()}else{recordTurn()}};
 }
-text.onclick=()=>{const value=prompt("Message à envoyer à HAL :");if(value&&value.trim())ask(value.trim())};
+async function sendText(){const value=messageInput.value.trim();if(!value)return;messageInput.value="";await ask(value)}
+send.onclick=sendText;
+messageInput.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendText()}});
+
 stop.onclick=()=>{conversationMode=false;try{recognition&&recognition.stop()}catch{};try{recorder&&recorder.stop()}catch{};if(window.__halAudio){window.__halAudio.pause();window.__halAudio.currentTime=0;window.__halAudio=null}speaking=false;eye.classList.remove("listening");status.textContent="HAL_V4 — STANDBY";talk.disabled=false;stop.disabled=true};
 </script>
 </body>
