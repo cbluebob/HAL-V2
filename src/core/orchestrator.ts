@@ -22,6 +22,9 @@ export async function runMission(
   if (plan.missionId !== mission.id) {
     throw new Error("Mission plan does not match mission.");
   }
+  if (!Array.isArray(plan.steps)) {
+    throw new Error("Mission plan steps must be an array.");
+  }
 
   let current: Mission = { ...mission, status: "running" };
 
