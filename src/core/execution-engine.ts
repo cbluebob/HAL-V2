@@ -60,7 +60,7 @@ async function reportFailure(
   message: string,
   type: "hal.observation.failed" | "hal.decision.failed" | "hal.action.failed",
 ): Promise<void> {
-  const failedContext = {
+  const failedContext: MissionExecutionContext = {
     ...context,
     result: {
       ok: false,
@@ -71,6 +71,7 @@ async function reportFailure(
     },
   };
   await Promise.resolve();
+  await context.report?.({ ...failedContext });
   appendEvent({
     id: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
