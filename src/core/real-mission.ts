@@ -42,9 +42,14 @@ export function createWebResearchMissionAdapters(): HALExecutionAdapters {
       const searched = "searched" in data && data.searched === true;
       const text = "text" in data && typeof data.text === "string" && data.text.trim().length > 0;
       const sources = "sources" in data && Array.isArray(data.sources) && data.sources.length > 0;
-      const sourceCount = sources ? (data.sources as unknown[]).length : 0;
+      const sourceList = sources ? (data.sources as unknown[]) : [];
+      const hasValidSource = sourceList.some((source) => {
+        if (!source || typeof source !== "object") return false;
+        const url = "url" in source ? source.url : undefined;
+        return typeof url === "string" && /^https?:\/\//i.test(url);
+      });
 
-      return searched && text && sourceCount >= 1;
+      return searched && text && sourceList.length >= 1 && hasValidSource;
     },
   };
 }
