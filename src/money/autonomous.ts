@@ -125,7 +125,7 @@ export async function runAutonomousMoneyMission(
             requiredAction: "execute",
           });
 
-          if (result.executed) {
+          if (result.executed && result.verified) {
             return true;
           }
         }
