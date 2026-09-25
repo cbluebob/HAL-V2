@@ -50,6 +50,38 @@ export type HALExecutionResult = {
   reason: string;
 };
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+async function reportFailure(
+  mission: Mission,
+  context: MissionExecutionContext,
+  message: string,
+  type: "hal.observation.failed" | "hal.decision.failed" | "hal.action.failed",
+): Promise<void> {
+  const failedContext = {
+    ...context,
+    result: {
+      ok: false,
+      action: context.decision?.action ?? "unknown",
+      message,
+      verified: false,
+      progressed: false,
+    },
+  };
+  await context.mission;
+  await Promise.resolve();
+  appendEvent({
+    id: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    type,
+    message,
+    missionId: mission.id,
+    verified: false,
+  });
+}
+
 export async function executeHALMission(
   mission: Mission,
   adapters: HALExecutionAdapters,
@@ -72,7 +104,14 @@ export async function executeHALMission(
   });
 
   for (let cycle = 1; cycle <= policy.maxCycles; cycle += 1) {
-    const observation = await adapters.observe(mission);
+    let observation: Observation;
+    try {
+      observation = await adapters.observe(mission);
+    } catch (error) {
+      const reason = `Observation failed: ${errorMessage(error)}`;
+      await reportFailure(mission, context, reason, "hal.observation.failed");
+      return { status: "failed", cycles: cycle, context, reason };
+    }
 
     if (!observation.verified) {
       const reason = "Observation was not verified.";
@@ -100,7 +139,15 @@ export async function executeHALMission(
       verified: true,
     });
 
-    const decision = await adapters.decide({ mission, observation });
+    let decision: Decision;
+    try {
+      decision = await adapters.decide({ mission, observation });
+    } catch (error) {
+      const reason = `Decision failed: ${errorMessage(error)}`;
+      await reportFailure(mission, context, reason, "hal.decision.failed");
+      return { status: "failed", cycles: cycle, context, reason };
+    }
+
     context = { ...context, decision };
 
     if (decision.aiEstimate) {
@@ -141,9 +188,16 @@ export async function executeHALMission(
       return { status: "blocked", cycles: cycle, context, reason };
     }
 
-    const toolRequest = adapters.toolAction
-      ? await adapters.toolAction({ mission, decision })
-      : undefined;
+    let toolRequest: ToolActionRequest | undefined;
+    try {
+      toolRequest = adapters.toolAction
+        ? await adapters.toolAction({ mission, decision })
+        : undefined;
+    } catch (error) {
+      const reason = `Action preparation failed: ${errorMessage(error)}`;
+      await reportFailure(mission, context, reason, "hal.action.failed");
+      return { status: "failed", cycles: cycle, context, reason };
+    }
 
     if (adapters.toolAction && !toolRequest) {
       const reason = `Decision action "${decision.action}" is not executable by the configured tool adapter.`;
@@ -161,17 +215,25 @@ export async function executeHALMission(
       return { status: "failed", cycles: cycle, context, reason };
     }
 
-    const result = adapters.act
-      ? await adapters.act({ mission, decision })
-      : adapters.toolAction
-        ? await executeToolAction(mission, toolRequest as ToolActionRequest)
-        : ({
-            ok: false,
-            action: decision.action,
-            message: "No action adapter is configured.",
-            verified: true,
-            progressed: false,
-          } satisfies ActionResult);
+    let result: ActionResult;
+    try {
+      result = adapters.act
+        ? await adapters.act({ mission, decision })
+        : adapters.toolAction
+          ? await executeToolAction(mission, toolRequest as ToolActionRequest)
+          : {
+              ok: false,
+              action: decision.action,
+              message: "No action adapter is configured.",
+              verified: true,
+              progressed: false,
+            };
+    } catch (error) {
+      const reason = `Action execution failed: ${errorMessage(error)}`;
+      await reportFailure(mission, context, reason, "hal.action.failed");
+      return { status: "failed", cycles: cycle, context, reason };
+    }
+
     context = { ...context, result };
 
     if (!result.ok || !result.verified) {
@@ -188,9 +250,16 @@ export async function executeHALMission(
       return { status: "failed", cycles: cycle, context, reason };
     }
 
-    const controlled = adapters.control
-      ? await adapters.control({ mission, result })
-      : result.verified;
+    let controlled: boolean;
+    try {
+      controlled = adapters.control
+        ? await adapters.control({ mission, result })
+        : result.verified;
+    } catch (error) {
+      const reason = `Post-action control failed: ${errorMessage(error)}`;
+      await reportFailure(mission, context, reason, "hal.action.failed");
+      return { status: "failed", cycles: cycle, context, reason };
+    }
 
     if (!controlled) {
       const reason = "Post-action control did not verify the result.";
