@@ -69,7 +69,7 @@ export async function openAIWebSearch(
       max_output_tokens: 1200,
       tools: [{ type: "web_search" }],
       include: ["web_search_call.action.sources"],
-      tool_choice: "auto",
+      tool_choice: "required",
     }),
   });
 
