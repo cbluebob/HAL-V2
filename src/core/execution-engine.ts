@@ -57,6 +57,7 @@ function errorMessage(error: unknown): string {
 async function reportFailure(
   mission: Mission,
   context: MissionExecutionContext,
+  report: HALExecutionAdapters["report"],
   message: string,
   type: "hal.observation.failed" | "hal.decision.failed" | "hal.action.failed",
 ): Promise<void> {
@@ -71,7 +72,7 @@ async function reportFailure(
     },
   };
   await Promise.resolve();
-  await context.report?.({ ...failedContext });
+  await report?.(failedContext);
   appendEvent({
     id: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
@@ -109,7 +110,7 @@ export async function executeHALMission(
       observation = await adapters.observe(mission);
     } catch (error) {
       const reason = `Observation failed: ${errorMessage(error)}`;
-      await reportFailure(mission, context, reason, "hal.observation.failed");
+      await reportFailure(mission, context, adapters.report, reason, "hal.observation.failed");
       return { status: "failed", cycles: cycle, context, reason };
     }
 
@@ -144,7 +145,7 @@ export async function executeHALMission(
       decision = await adapters.decide({ mission, observation });
     } catch (error) {
       const reason = `Decision failed: ${errorMessage(error)}`;
-      await reportFailure(mission, context, reason, "hal.decision.failed");
+      await reportFailure(mission, context, adapters.report, reason, "hal.decision.failed");
       return { status: "failed", cycles: cycle, context, reason };
     }
 
@@ -195,7 +196,7 @@ export async function executeHALMission(
         : undefined;
     } catch (error) {
       const reason = `Action preparation failed: ${errorMessage(error)}`;
-      await reportFailure(mission, context, reason, "hal.action.failed");
+      await reportFailure(mission, context, adapters.report, reason, "hal.action.failed");
       return { status: "failed", cycles: cycle, context, reason };
     }
 
