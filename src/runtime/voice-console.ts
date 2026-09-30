@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
 import { synthesizeHALSpeech } from "../adapters/openai-tts";
-import { runHostedHALMission } from "../core/hosted-hal";
+import { runHostedHALMission, HAL_HOSTED_SYSTEM_INSTRUCTIONS } from "../core/hosted-hal";
 import { streamHostedAgentResponse } from "../adapters/openai-agents-session";
 
 const HOST = process.env.HAL_VOICE_HOST ?? "127.0.0.1";
