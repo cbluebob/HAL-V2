@@ -41,7 +41,7 @@ small{display:block;text-align:center;color:#555;margin-top:16px}
 </div>
 <small>La clé API reste côté serveur. La voix est une interprétation synthétique, pas l'imitation d'un comédien.</small>
 </main>
-<script src="/app.js?v=5"></script>
+<script src="/app.js?v=6"></script>
 </body>
 </html>`;
 
@@ -158,12 +158,12 @@ const server = createServer(async (req, res) => {
       try {
         await streamHostedAgentResponse(
           { input: message, instructions: HAL_HOSTED_SYSTEM_INSTRUCTIONS },
-          (delta) => res.write(`data: ${JSON.stringify({ delta })}\\n\\n`),
+          (delta) => res.write(`data: ${JSON.stringify({ delta })}\n\n`),
         );
-        res.write(`data: ${JSON.stringify({ done: true })}\\n\\n`);
+        res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
         res.end();
       } catch (error) {
-        res.write(`data: ${JSON.stringify({ error: error instanceof Error ? error.message : "Erreur HAL" })}\\n\\n`);
+        res.write(`data: ${JSON.stringify({ error: error instanceof Error ? error.message : "Erreur HAL" })}\n\n`);
         res.end();
       }
       return;
