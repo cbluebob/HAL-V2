@@ -77,7 +77,7 @@ async function transcribeBlob(blob){
 async function recordTurn(){
   if(!conversationMode||speaking)return;
   try{
-    recorderStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    recorderStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
     recorder=new MediaRecorder(recorderStream); const chunks=[];
     recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
     recorder.onstop=async()=>{
@@ -129,7 +129,7 @@ async function ask(text){
       stop.disabled=false; await playSpeechBlob(blob);
     }
     speaking=false; eye.classList.remove("active"); setEye(false);
-    if(conversationMode){status.textContent="HAL_V4 — ÉCOUTE";setTimeout(recordTurn,300)}else{status.textContent="HAL_V4 — STANDBY";stop.disabled=true}
+    if(conversationMode){status.textContent="HAL_V4 — ÉCOUTE";setTimeout(recordTurn,1000)}else{status.textContent="HAL_V4 — STANDBY";stop.disabled=true}
   }catch(e){
     speaking=false; eye.classList.remove("active"); setEye(false); add("HAL","Erreur: "+String(e.message||e)); status.textContent="HAL_V4 — ERREUR"; conversationMode=false; talk.disabled=false; stop.disabled=true;
   }
