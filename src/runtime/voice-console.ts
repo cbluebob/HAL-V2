@@ -2,6 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { readFile } from "node:fs/promises";
 import { synthesizeHALSpeech } from "../adapters/openai-tts";
 import { runHostedHALMission } from "../core/hosted-hal";
+import { streamHostedAgentResponse } from "../adapters/openai-agents-session";
 
 const HOST = process.env.HAL_VOICE_HOST ?? "127.0.0.1";
 const PORT = Number(process.env.HAL_VOICE_PORT ?? "8787");
@@ -142,6 +143,28 @@ const server = createServer(async (req, res) => {
       } catch (error) {
         res.writeHead(500, {"Content-Type":"text/html; charset=utf-8"});
         res.end(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>HAL Erreur</title></head><body style="background:#030506;color:#eee;font:20px ui-monospace;padding:40px"><h1>Erreur HAL</h1><pre>${htmlEscape(error instanceof Error ? error.message : "Erreur inconnue")}</pre><a href="/">Retour à la console HAL</a></body></html>`);
+      }
+      return;
+    }
+    if (req.method === "POST" && req.url === "/api/chat-stream") {
+      const body = await readJson(req);
+      const message = typeof body.message === "string" ? body.message.trim() : "";
+      if (!message) return sendJson(res, 400, { error: "Message HAL vide." });
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-store",
+        "Connection": "keep-alive",
+      });
+      try {
+        await streamHostedAgentResponse(
+          { input: message, instructions: HAL_HOSTED_SYSTEM_INSTRUCTIONS },
+          (delta) => res.write(`data: ${JSON.stringify({ delta })}\\n\\n`),
+        );
+        res.write(`data: ${JSON.stringify({ done: true })}\\n\\n`);
+        res.end();
+      } catch (error) {
+        res.write(`data: ${JSON.stringify({ error: error instanceof Error ? error.message : "Erreur HAL" })}\\n\\n`);
+        res.end();
       }
       return;
     }
