@@ -182,7 +182,7 @@ async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> 
 
 const server = createServer(async (req, res) => {
   try {
-    if (req.method === "GET" && req.url === "/") {
+    if (req.method === "GET" && new URL(req.url ?? "/", `http://${HOST}:${PORT}`).pathname === "/") {
       res.writeHead(200, {"Content-Type":"text/html; charset=utf-8"});
       res.end(HTML);
       return;
