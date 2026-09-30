@@ -2,6 +2,7 @@ const eye=document.getElementById("eye"),status=document.getElementById("status"
 const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
 let recognition=null, recorder=null, recorderStream=null, speaking=false, conversationMode=false, restarting=false;
 const history=[];
+function setEye(active){eye.style.background=active?"#ff2020":"#ff0000";eye.style.opacity=active?"1":".45";eye.style.boxShadow=active?"0 0 70px #ff0000,0 0 140px #ff0000":"0 0 45px #ff0000,0 0 90px #ff0000";eye.style.transform=active?"scale(1.05)":"scale(1)";}
 function add(who,text){const p=document.createElement("p");p.className="line "+(who==="HAL"?"hal":"you");p.textContent=who+": "+text;conversation.appendChild(p);conversation.scrollTop=conversation.scrollHeight;}
 function startListening(){
   if(!recognition||speaking||!conversationMode||restarting)return;
@@ -29,7 +30,7 @@ async function fetchSpeechChunk(text){
 }
 async function playSpeechBlob(blob){
   const url=URL.createObjectURL(blob), audio=new Audio(url);
-  audio.playbackRate=1.75;
+  audio.playbackRate=2.0;
   audio.preservesPitch=true;
   window.__halAudio=audio;
   await new Promise((resolve,reject)=>{
@@ -54,7 +55,7 @@ async function speak(text){
     if(window.__halAudio){try{window.__halAudio.pause()}catch{}window.__halAudio=null}
     throw e;
   }finally{
-    speaking=false; eye.classList.remove("active");
+    speaking=false; eye.classList.remove("active"); setEye(false);
     if(conversationMode){status.textContent="HAL_V4 — ÉCOUTE";startListening()}
     else{stop.disabled=true;status.textContent="HAL_V4 — STANDBY"}
   }
@@ -84,14 +85,14 @@ async function recordTurn(){
 }
 async function playStreamSentence(text){
   const blob=await fetchSpeechChunk(text);
-  speaking=true; stop.disabled=false; status.textContent="HAL_V4 — RÉPONSE"; eye.classList.add("active");
+  speaking=true; stop.disabled=false; status.textContent="HAL_V4 — RÉPONSE"; eye.classList.add("active"); setEye(true);
   await playSpeechBlob(blob);
   speaking=false;
 }
 async function ask(text){
   const clean=text.trim(); if(!clean)return;
   add("VOUS",clean); history.push({role:"user",content:clean});
-  status.textContent="HAL_V4 — ANALYSE"; eye.classList.add("active"); talk.disabled=true; stop.disabled=false; eye.classList.remove("listening");
+  status.textContent="HAL_V4 — ANALYSE"; eye.classList.add("active"); talk.disabled=true; stop.disabled=false; eye.classList.remove("listening"); setEye(true);
   const halLine=document.createElement("p"); halLine.className="line hal"; halLine.textContent="HAL: "; conversation.appendChild(halLine);
   let fullText="", speechBuffer="";
   const speakQueue=[]; let speakingQueue=false;
