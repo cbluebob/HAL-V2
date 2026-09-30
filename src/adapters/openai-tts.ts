@@ -15,7 +15,7 @@ export type HALVoiceOptions = {
 
 const DEFAULT_INSTRUCTIONS =
   "Speak French with a low, deep, warm masculine register, calm, precise, measured, and neutral, like a sophisticated synthetic computer. " +
-  "Use very fast, seamless, fluid connected speech, with natural French liaison and continuous phrasing. Minimize pauses to the absolute minimum: do not pause between words, phrases, or clauses unless a tiny breath is naturally required. Treat commas and sentence punctuation as very short transitions, not breaks. Avoid dramatic sentence endings, isolated word emphasis, and over-articulation. Keep the low vocal register while speaking in one smooth continuous flow. " +
+  "Use extremely smooth, seamless, fast connected French speech with natural liaison and continuous phrasing. Keep the flow uninterrupted from one word into the next, using only tiny natural breaths where absolutely necessary. Treat commas and punctuation as almost imperceptible transitions rather than pauses. Avoid sentence-break effects, dramatic endings, isolated word emphasis, and over-articulation. Maintain one continuous, relaxed vocal stream while preserving clear intelligibility and the low register. " +
   "Do not imitate or reproduce any specific actor's voice.";
 
 export async function synthesizeHALSpeech(
