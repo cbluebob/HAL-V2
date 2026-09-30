@@ -41,7 +41,7 @@ small{display:block;text-align:center;color:#555;margin-top:16px}
 </div>
 <small>La clé API reste côté serveur. La voix est une interprétation synthétique, pas l'imitation d'un comédien.</small>
 </main>
-<script src="/app.js?v=4"></script>
+<script src="/app.js?v=5"></script>
 </body>
 </html>`;
 
