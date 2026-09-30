@@ -107,7 +107,9 @@ if(!Recognition){
   talk.onclick=()=>{conversationMode=true;if(recognition){status.textContent="HAL_V4 — ÉCOUTE";startListening()}else{recordTurn()}};
 }
 async function sendText(){const value=messageInput.value.trim();if(!value)return;messageInput.value="";await ask(value)}
-send.onclick=sendText;\nmessageInput.addEventListener("input",()=>{send.disabled=!messageInput.value.trim()});\nsend.disabled=true;
+send.onclick=sendText;
+messageInput.addEventListener("input",()=>{send.disabled=!messageInput.value.trim()});
+send.disabled=true;
 messageInput.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendText()}});
 
 stop.onclick=()=>{conversationMode=false;try{recognition&&recognition.stop()}catch{};try{recorder&&recorder.stop()}catch{};if(window.__halAudio){window.__halAudio.pause();window.__halAudio.currentTime=0;window.__halAudio=null}speaking=false;eye.classList.remove("listening");status.textContent="HAL_V4 — STANDBY";talk.disabled=false;stop.disabled=true};
