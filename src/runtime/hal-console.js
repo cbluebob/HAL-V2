@@ -78,16 +78,18 @@ async function recordTurn(){
   if(!conversationMode||speaking)return;
   try{
     recorderStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
-    recorder=new MediaRecorder(recorderStream); const chunks=[];
+    recorder=new MediaRecorder(recorderStream); const chunks=[]; const mimeType=recorder.mimeType||"audio/webm";
     recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
     recorder.onstop=async()=>{
-      recorderStream.getTracks().forEach(t=>t.stop()); recorderStream=null; recorder=null;
+      const audioBlob=new Blob(chunks,{type:mimeType});
+      try{recorderStream&&recorderStream.getTracks().forEach(t=>t.stop())}catch{}
+      recorderStream=null; recorder=null;
       if(!conversationMode){status.textContent="HAL_V4 — STANDBY";talk.disabled=false;talk.textContent="DÉMARRER LA CONVERSATION";stop.disabled=true;return;}
       status.textContent="HAL_V4 — TRANSCRIPTION";
-      try{const text=await transcribeBlob(new Blob(chunks,{type:recorder.mimeType||"audio/webm"})); const transcript=text.trim(); const lastHAL=history.filter(m=>m.role==="assistant").at(-1)?.content?.trim()||""; const norm=s=>s.toLowerCase().replace(/[^a-zàâçéèêëîïôûùüÿñæœ0-9 ]/gi," ").replace(/\s+/g," ").trim(); const a=norm(transcript), b=norm(lastHAL); const words=a.split(" ").filter(Boolean); const overlap=b?words.filter(w=>b.split(" ").includes(w)).length/Math.max(words.length,1):0; if(!transcript){status.textContent="HAL_V4 — STANDBY";conversationMode=false;talk.disabled=false;stop.disabled=true}else if(b&&((a===b)||(overlap>=0.75&&words.length>=4))){add("HAL","Entrée micro ignorée : retour audio détecté.");status.textContent="HAL_V4 — STANDBY";conversationMode=false;talk.disabled=false;stop.disabled=true}else await ask(transcript);}catch(e){add("HAL",String(e.message||e));status.textContent="HAL_V4 — ERREUR MICRO";conversationMode=false;talk.disabled=false}
+      try{const text=await transcribeBlob(audioBlob); const transcript=text.trim(); const lastHAL=history.filter(m=>m.role==="assistant").at(-1)?.content?.trim()||""; const norm=s=>s.toLowerCase().replace(/[^a-zàâçéèêëîïôûùüÿñæœ0-9 ]/gi," ").replace(/\s+/g," ").trim(); const a=norm(transcript), b=norm(lastHAL); const words=a.split(" ").filter(Boolean); const overlap=b?words.filter(w=>b.split(" ").includes(w)).length/Math.max(words.length,1):0; if(!transcript){status.textContent="HAL_V4 — STANDBY";conversationMode=false;talk.disabled=false;stop.disabled=true}else if(b&&((a===b)||(overlap>=0.75&&words.length>=4))){add("HAL","Entrée micro ignorée : retour audio détecté.");status.textContent="HAL_V4 — STANDBY";conversationMode=false;talk.disabled=false;stop.disabled=true}else await ask(transcript);}catch(e){add("HAL",String(e.message||e));status.textContent="HAL_V4 — ERREUR MICRO";conversationMode=false;talk.disabled=false}
     };
     recorder.start(); eye.classList.add("listening"); status.textContent="HAL_V4 — ÉCOUTE — CLIQUEZ POUR TERMINER"; talk.disabled=false; talk.textContent="TERMINER LA PAROLE"; stop.disabled=false;
-  }catch(e){status.textContent="HAL_V4 — MICRO: "+(e&&e.message?e.message:"accès refusé");add("HAL","Accès au microphone impossible. Vérifiez l’autorisation du site.");conversationMode=false;talk.disabled=false}
+  }catch(e){conversationMode=false;try{recorderStream&&recorderStream.getTracks().forEach(t=>t.stop())}catch{};recorder=null;recorderStream=null;status.textContent="HAL_V4 — MICRO: "+(e&&e.message?e.message:"accès refusé");add("HAL","Accès au microphone impossible. Vérifiez l’autorisation du site.");talk.disabled=false;talk.textContent="DÉMARRER LA CONVERSATION";stop.disabled=true}
 }
 async function playStreamSentence(text){
   const blob=await fetchSpeechChunk(text);
