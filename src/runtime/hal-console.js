@@ -1,6 +1,6 @@
 const eye=document.getElementById("eye"),status=document.getElementById("status"),conversation=document.getElementById("conversation"),talk=document.getElementById("talk"),stop=document.getElementById("stop"),messageInput=document.getElementById("message"),send=document.getElementById("send");
 const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-let recognition=null, recorder=null, recorderStream=null, speaking=false, conversationMode=false, restarting=false;
+let recognition=null, recorder=null, recorderStream=null, speaking=false, conversationMode=false, restarting=false, micListening=false;
 const history=[];
 function setEye(active){eye.style.background=active?"#ff2020":"#ff0000";eye.style.opacity=active?"1":".45";eye.style.boxShadow=active?"0 0 70px #ff0000,0 0 140px #ff0000":"0 0 45px #ff0000,0 0 90px #ff0000";eye.style.transform=active?"scale(1.05)":"scale(1)";}
 function add(who,text){const p=document.createElement("p");p.className="line "+(who==="HAL"?"hal":"you");p.textContent=who+": "+text;conversation.appendChild(p);conversation.scrollTop=conversation.scrollHeight;}
@@ -132,10 +132,10 @@ if(!Recognition){
   add("HAL","La reconnaissance vocale de ce navigateur n'est pas disponible. Utilisez un navigateur compatible SpeechRecognition.");
 }else{
   try{ recognition=new Recognition(); recognition.lang="fr-FR"; recognition.interimResults=false; recognition.continuous=false; }catch(error){ recognition=null; talk.disabled=true; status.textContent="HAL_V4 — MICRO INDISPONIBLE"; add("HAL","Impossible d’initialiser la reconnaissance vocale : "+(error&&error.message?error.message:"erreur inconnue")); }
-  recognition.onstart=()=>{restarting=false;eye.classList.add("listening");status.textContent="HAL_V4 — ÉCOUTE";talk.disabled=true;stop.disabled=false};
-  recognition.onresult=e=>{if(!speaking)ask(e.results[0][0].transcript)};
+  recognition.onstart=()=>{restarting=false;micListening=true;eye.classList.add("listening");status.textContent="HAL_V4 — ÉCOUTE";talk.disabled=true;stop.disabled=false};
+  recognition.onresult=e=>{if(!micListening||speaking||!conversationMode)return;const result=e.results[e.results.length-1];if(!result||!result.isFinal)return;const transcript=result[0]?.transcript?.trim();if(transcript)ask(transcript)};
   recognition.onerror=e=>{eye.classList.remove("listening");if(conversationMode&&e.error!=="aborted"){status.textContent="HAL_V4 — MICROPHONE: "+e.error;setTimeout(startListening,800)}else{talk.disabled=false}};
-  recognition.onend=()=>{eye.classList.remove("listening");if(conversationMode&&!speaking)setTimeout(startListening,250)};
+  recognition.onend=()=>{micListening=false;eye.classList.remove("listening");if(conversationMode&&!speaking)setTimeout(startListening,700)};
   talk.onclick=()=>{conversationMode=true;if(recognition){status.textContent="HAL_V4 — ÉCOUTE";startListening()}else{recordTurn()}};
 }
 async function sendText(){const value=messageInput.value.trim();if(!value)return;messageInput.value="";await ask(value)}
@@ -144,4 +144,4 @@ messageInput.addEventListener("input",()=>{send.disabled=!messageInput.value.tri
 send.disabled=true;
 messageInput.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendText()}});
 
-stop.onclick=()=>{conversationMode=false;try{recognition&&recognition.stop()}catch{};try{recorder&&recorder.stop()}catch{};if(window.__halAudio){window.__halAudio.pause();window.__halAudio.currentTime=0;window.__halAudio=null}speaking=false;eye.classList.remove("listening");status.textContent="HAL_V4 — STANDBY";talk.disabled=false;stop.disabled=true};
+stop.onclick=()=>{conversationMode=false;try{micListening=false;recognition&&recognition.stop()}catch{};try{recorder&&recorder.stop()}catch{};if(window.__halAudio){window.__halAudio.pause();window.__halAudio.currentTime=0;window.__halAudio=null}speaking=false;eye.classList.remove("listening");status.textContent="HAL_V4 — STANDBY";talk.disabled=false;stop.disabled=true};
