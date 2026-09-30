@@ -39,7 +39,7 @@ export async function synthesizeHALSpeech(
         voice: options.voice ?? "onyx",
         input: cleanText.slice(0, 4096),
         instructions: options.instructions ?? DEFAULT_INSTRUCTIONS,
-        response_format: "mp3",\n        speed: 1.0,
+        response_format: "mp3",\n        speed: 1.15,
       }),
     },
   );
