@@ -129,7 +129,7 @@ async function ask(text){
       stop.disabled=false; await playSpeechBlob(blob);
     }
     speaking=false; eye.classList.remove("active"); setEye(false);
-    if(conversationMode){status.textContent="HAL_V4 — ÉCOUTE";setTimeout(recordTurn,1000)}else{status.textContent="HAL_V4 — STANDBY";stop.disabled=true}
+    conversationMode=false; status.textContent="HAL_V4 — STANDBY"; talk.disabled=false; stop.disabled=true
   }catch(e){
     speaking=false; eye.classList.remove("active"); setEye(false); add("HAL","Erreur: "+String(e.message||e)); status.textContent="HAL_V4 — ERREUR"; conversationMode=false; talk.disabled=false; stop.disabled=true;
   }
