@@ -9,14 +9,53 @@ function startListening(){
   try{recognition.start()}catch(error){restarting=false; status.textContent="HAL_V4 — MICRO: "+(error&&error.message?error.message:"démarrage impossible"); add("HAL","Le microphone n’a pas pu démarrer. Vérifiez l’autorisation du navigateur.");}
   setTimeout(()=>{restarting=false},300);
 }
-async function speak(text){
+function splitSpeech(text){
+  const normalized=text.trim();
+  if(normalized.length<=180)return [normalized];
+  const parts=normalized.match(/[^.!?]+[.!?]+(?:\\s+|$)|[^.!?]+$/g)||[normalized];
+  const chunks=[]; let current="";
+  for(const part of parts){
+    const p=part.trim(); if(!p)continue;
+    if((current+" "+p).trim().length<=220) current=(current+" "+p).trim();
+    else {if(current)chunks.push(current);current=p;}
+  }
+  if(current)chunks.push(current);
+  return chunks.length?chunks:[normalized];
+}
+async function fetchSpeechChunk(text){
   const r=await fetch("/api/speak",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text})});
   if(!r.ok) throw new Error(await r.text());
-  const blob=await r.blob(), url=URL.createObjectURL(blob), audio=new Audio(url);
+  return r.blob();
+}
+async function playSpeechBlob(blob){
+  const url=URL.createObjectURL(blob), audio=new Audio(url);
+  window.__halAudio=audio;
+  await new Promise((resolve,reject)=>{
+    audio.onended=resolve;
+    audio.onerror=()=>reject(new Error("Lecture audio impossible."));
+    audio.play().catch(reject);
+  });
+  URL.revokeObjectURL(url);
+}
+async function speak(text){
+  const chunks=splitSpeech(text);
   speaking=true; stop.disabled=false; status.textContent="HAL_V4 — RÉPONSE";
-  audio.onended=()=>{speaking=false;URL.revokeObjectURL(url);if(conversationMode){status.textContent="HAL_V4 — ÉCOUTE";startListening()}else{stop.disabled=true;status.textContent="HAL_V4 — STANDBY"}};
-  audio.onerror=()=>{speaking=false;URL.revokeObjectURL(url);status.textContent="HAL_V4 — ERREUR AUDIO";if(conversationMode)startListening()};
-  try{await audio.play();}catch(e){throw new Error("Lecture audio refusée par le navigateur. Cliquez d’abord sur la console HAL puis réessayez. "+(e&&e.message?e.message:""));} window.__halAudio=audio;
+  try{
+    let nextPromise=fetchSpeechChunk(chunks[0]);
+    for(let i=0;i<chunks.length;i++){
+      const blob=await nextPromise;
+      if(i+1<chunks.length) nextPromise=fetchSpeechChunk(chunks[i+1]);
+      await playSpeechBlob(blob);
+    }
+  }catch(e){
+    speaking=false;
+    if(window.__halAudio){try{window.__halAudio.pause()}catch{}window.__halAudio=null}
+    throw e;
+  }finally{
+    speaking=false;
+    if(conversationMode){status.textContent="HAL_V4 — ÉCOUTE";startListening()}
+    else{stop.disabled=true;status.textContent="HAL_V4 — STANDBY"}
+  }
 }
 
 async function transcribeBlob(blob){
