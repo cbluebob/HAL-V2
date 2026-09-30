@@ -33,7 +33,7 @@ small{display:block;text-align:center;color:#555;margin-top:16px}
 <main>
 <header><div id="eye"></div><div id="status">HAL_V4 — STANDBY</div></header>
 <section id="conversation"></section>
-<form class="textbox" action="/test" method="get"><input id="message" name="message" type="text" placeholder="Écrivez un message à HAL..." autocomplete="off"><button id="send" type="submit">ENVOYER</button></form>
+<div class="textbox"><input id="message" type="text" placeholder="Écrivez un message à HAL..." autocomplete="off"><button id="send" type="button">ENVOYER</button></div>
 <div class="controls">
 <button id="talk">DÉMARRER LA CONVERSATION</button><button id="stop" disabled>ARRÊTER</button>
 </div>
@@ -58,7 +58,7 @@ async function speak(text){
   speaking=true; stop.disabled=false; status.textContent="HAL_V4 — RÉPONSE";
   audio.onended=()=>{speaking=false;URL.revokeObjectURL(url);if(conversationMode){status.textContent="HAL_V4 — ÉCOUTE";startListening()}else{stop.disabled=true;status.textContent="HAL_V4 — STANDBY"}};
   audio.onerror=()=>{speaking=false;URL.revokeObjectURL(url);status.textContent="HAL_V4 — ERREUR AUDIO";if(conversationMode)startListening()};
-  await audio.play(); window.__halAudio=audio;
+  try{await audio.play();}catch(e){throw new Error("Lecture audio refusée par le navigateur. Cliquez d’abord sur la console HAL puis réessayez. "+(e&&e.message?e.message:""));} window.__halAudio=audio;
 }
 
 async function transcribeBlob(blob){
@@ -93,7 +93,7 @@ async function ask(text){
     const r=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({message:prompt})});
     const data=await r.json(); if(!r.ok) throw new Error(data.error||"Erreur HAL");
     history.push({role:"assistant",content:data.text}); add("HAL",data.text); await speak(data.text);
-  }catch(e){add("HAL",String(e.message||e));status.textContent="HAL_V4 — ERREUR";conversationMode=false;talk.disabled=false}
+  }catch(e){add("HAL","Erreur: "+String(e.message||e));status.textContent="HAL_V4 — ERREUR";conversationMode=false;talk.disabled=false;stop.disabled=true}
 }
 if(!Recognition){
   talk.disabled=true; status.textContent="NAVIGATEUR SANS RECONNAISSANCE VOCALE";
@@ -107,7 +107,7 @@ if(!Recognition){
   talk.onclick=()=>{conversationMode=true;if(recognition){status.textContent="HAL_V4 — ÉCOUTE";startListening()}else{recordTurn()}};
 }
 async function sendText(){const value=messageInput.value.trim();if(!value)return;messageInput.value="";await ask(value)}
-send.onclick=sendText;
+send.onclick=sendText;\nmessageInput.addEventListener("input",()=>{send.disabled=!messageInput.value.trim()});\nsend.disabled=true;
 messageInput.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendText()}});
 
 stop.onclick=()=>{conversationMode=false;try{recognition&&recognition.stop()}catch{};try{recorder&&recorder.stop()}catch{};if(window.__halAudio){window.__halAudio.pause();window.__halAudio.currentTime=0;window.__halAudio=null}speaking=false;eye.classList.remove("listening");status.textContent="HAL_V4 — STANDBY";talk.disabled=false;stop.disabled=true};
