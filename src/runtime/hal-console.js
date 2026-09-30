@@ -41,7 +41,7 @@ async function playSpeechBlob(blob){
   await new Promise((resolve,reject)=>{
     const source=audioContext.createBufferSource();
     source.buffer=buffer;
-    source.playbackRate.value=9.5;
+    source.playbackRate.value=1;
     source.connect(audioContext.destination);
     window.__halSource=source;
     source.onended=()=>{if(window.__halSource===source)window.__halSource=null;resolve()};
