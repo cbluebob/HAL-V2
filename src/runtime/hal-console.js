@@ -30,7 +30,7 @@ async function fetchSpeechChunk(text){
 }
 async function playSpeechBlob(blob){
   const url=URL.createObjectURL(blob), audio=new Audio(url);
-  audio.playbackRate=2.0;
+  audio.playbackRate=3.0;
   audio.preservesPitch=true;
   window.__halAudio=audio;
   await new Promise((resolve,reject)=>{
