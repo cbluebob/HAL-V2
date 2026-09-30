@@ -1,6 +1,6 @@
 const eye=document.getElementById("eye"),status=document.getElementById("status"),conversation=document.getElementById("conversation"),talk=document.getElementById("talk"),stop=document.getElementById("stop"),messageInput=document.getElementById("message"),send=document.getElementById("send");
 const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-let recognition=null, recorder=null, recorderStream=null, speaking=false, conversationMode=false, restarting=false, micListening=false;
+let recognition=null, recorder=null, recorderStream=null, speaking=false, conversationMode=false, restarting=false, micListening=false, audioContext=null;
 const history=[];
 function setEye(active){eye.style.background=active?"#ff2020":"#ff0000";eye.style.opacity=active?"1":".45";eye.style.boxShadow=active?"0 0 70px #ff0000,0 0 140px #ff0000":"0 0 45px #ff0000,0 0 90px #ff0000";eye.style.transform=active?"scale(1.05)":"scale(1)";}
 function add(who,text){const p=document.createElement("p");p.className="line "+(who==="HAL"?"hal":"you");p.textContent=who+": "+text;conversation.appendChild(p);conversation.scrollTop=conversation.scrollHeight;}
@@ -28,7 +28,14 @@ async function fetchSpeechChunk(text){
   if(!r.ok) throw new Error(await r.text());
   return r.blob();
 }
+async function unlockAudio(){
+  try{
+    if(!audioContext) audioContext=new (window.AudioContext||window.webkitAudioContext)();
+    if(audioContext.state==="suspended") await audioContext.resume();
+  }catch{}
+}
 async function playSpeechBlob(blob){
+  await unlockAudio();
   const url=URL.createObjectURL(blob), audio=new Audio(url);
   audio.playbackRate=9.0;
   audio.preservesPitch=true;
@@ -136,7 +143,7 @@ if(!Recognition){
   recognition.onresult=e=>{if(!micListening||speaking||!conversationMode)return;const result=e.results[e.results.length-1];if(!result||!result.isFinal)return;const transcript=result[0]?.transcript?.trim();if(transcript)ask(transcript)};
   recognition.onerror=e=>{eye.classList.remove("listening");if(conversationMode&&e.error!=="aborted"){status.textContent="HAL_V4 — MICROPHONE: "+e.error;setTimeout(startListening,800)}else{talk.disabled=false}};
   recognition.onend=()=>{micListening=false;eye.classList.remove("listening");if(conversationMode&&!speaking)setTimeout(startListening,700)};
-  talk.onclick=()=>{conversationMode=true;recordTurn()};
+  talk.onclick=async()=>{conversationMode=true;await unlockAudio();recordTurn()};
 }
 async function sendText(){const value=messageInput.value.trim();if(!value)return;messageInput.value="";await ask(value)}
 send.onclick=sendText;
