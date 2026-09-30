@@ -173,5 +173,4 @@ export async function streamHostedAgentResponse(
     throw new Error(`HAL streaming response ended with status: ${status}`);
   }
   return { sessionId, status };
-}
-\n
+} 
