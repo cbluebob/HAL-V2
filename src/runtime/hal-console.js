@@ -30,7 +30,7 @@ async function fetchSpeechChunk(text){
 }
 async function playSpeechBlob(blob){
   const url=URL.createObjectURL(blob), audio=new Audio(url);
-  audio.playbackRate=9.0;
+  audio.playbackRate=2.5;
   audio.preservesPitch=true;
   window.__halAudio=audio;
   await new Promise((resolve,reject)=>{
@@ -94,24 +94,10 @@ async function ask(text){
   add("VOUS",clean); history.push({role:"user",content:clean});
   status.textContent="HAL_V4 — ANALYSE"; eye.classList.add("active"); talk.disabled=true; stop.disabled=false; eye.classList.remove("listening"); setEye(true);
   const halLine=document.createElement("p"); halLine.className="line hal"; halLine.textContent="HAL: "; conversation.appendChild(halLine);
-  let fullText="", speechBuffer="";
-  const speakQueue=[]; let speakingQueue=false;
-  const queueSpeech=async()=>{
-    if(speakingQueue)return;
-    speakingQueue=true;
-    try{while(speakQueue.length){await playStreamSentence(speakQueue.shift());}}
-    finally{speakingQueue=false}
-  };
-  const flushSpeech=()=>{
-    const parts=speechBuffer.match(/^[\\s\\S]*?[.!?](?:\\s+|$)/);
-    if(!parts)return;
-    const sentence=parts[0].trim();
-    speechBuffer=speechBuffer.slice(parts[0].length).trimStart();
-    if(sentence.length>=8){speakQueue.push(sentence);void queueSpeech();}
-  };
+  let fullText="";
   try{
-    const context=history.slice(-8).map(m=>m.role==="user"?"Utilisateur: "+m.content:"HAL: "+m.content).join("\\n");
-    const prompt="Conserve le contexte de cette conversation et réponds naturellement en français.\\n\\n"+context;
+    const context=history.slice(-8).map(m=>m.role==="user"?"Utilisateur: "+m.content:"HAL: "+m.content).join("\n");
+    const prompt="Conserve le contexte de cette conversation et réponds naturellement en français.\n\n"+context;
     const r=await fetch("/api/chat-stream",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({message:prompt})});
     if(!r.ok) throw new Error(await r.text());
     if(!r.body) throw new Error("Streaming HAL indisponible.");
@@ -119,25 +105,26 @@ async function ask(text){
     while(true){
       const {value,done}=await reader.read(); if(done)break;
       buffer+=decoder.decode(value,{stream:true});
-      const blocks=buffer.split("\\n\\n"); buffer=blocks.pop()||"";
+      const blocks=buffer.split("\n\n"); buffer=blocks.pop()||"";
       for(const block of blocks){
-        const line=block.split("\\n").find(x=>x.startsWith("data:")); if(!line)continue;
+        const line=block.split("\n").find(x=>x.startsWith("data:")); if(!line)continue;
         const data=JSON.parse(line.slice(5).trim());
         if(data.error) throw new Error(data.error);
-        if(data.delta){fullText+=data.delta; speechBuffer+=data.delta; halLine.textContent="HAL: "+fullText; conversation.scrollTop=conversation.scrollHeight; flushSpeech();}
+        if(data.delta){fullText+=data.delta; halLine.textContent="HAL: "+fullText; conversation.scrollTop=conversation.scrollHeight;}
       }
     }
-    speechBuffer=speechBuffer.trim();
-    if(speechBuffer){speakQueue.push(speechBuffer);void queueSpeech();}
-    history.push({role:"assistant",content:fullText});
-    while(speakQueue.length||speakingQueue) await new Promise(resolve=>setTimeout(resolve,50));
-    speaking=false;
+    fullText=fullText.trim(); history.push({role:"assistant",content:fullText});
+    if(fullText){
+      status.textContent="HAL_V4 — RÉPONSE"; eye.classList.add("active"); setEye(true);
+      const blob=await fetchSpeechChunk(fullText.slice(0,4096));
+      speaking=true; stop.disabled=false; await playSpeechBlob(blob);
+    }
+    speaking=false; eye.classList.remove("active"); setEye(false);
     if(conversationMode){status.textContent="HAL_V4 — ÉCOUTE";startListening()}else{status.textContent="HAL_V4 — STANDBY";stop.disabled=true}
   }catch(e){
-    speaking=false; add("HAL","Erreur: "+String(e.message||e)); status.textContent="HAL_V4 — ERREUR"; conversationMode=false; talk.disabled=false; stop.disabled=true;
+    speaking=false; eye.classList.remove("active"); setEye(false); add("HAL","Erreur: "+String(e.message||e)); status.textContent="HAL_V4 — ERREUR"; conversationMode=false; talk.disabled=false; stop.disabled=true;
   }
 }
-
 if(!Recognition){
   talk.disabled=true; status.textContent="NAVIGATEUR SANS RECONNAISSANCE VOCALE";
   add("HAL","La reconnaissance vocale de ce navigateur n'est pas disponible. Utilisez un navigateur compatible SpeechRecognition.");
