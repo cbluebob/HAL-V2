@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck",
     "voice": "tsx src/runtime/voice-console.ts",
-    "a2a:test-agent": "tsx src/runtime/a2a-test-agent.ts"
+    "a2a:test-agent": "tsx src/runtime/a2a-test-agent.ts",
+    "a2a:research-agent": "tsx src/runtime/a2a-test-agent.ts"
   },
   "devDependencies": {
     "typescript": "^5.8.3",
