@@ -15,7 +15,7 @@ export type HALVoiceOptions = {
 
 const DEFAULT_INSTRUCTIONS =
   "Speak French with a low, deep, warm masculine register, calm, precise, measured, and neutral, like a sophisticated synthetic computer. " +
-  "Use a restrained emotional range, deliberate pacing, very clear articulation, short pauses, and a deliberately lower vocal register. " +
+  "Use a natural conversational pace, fluid connected speech, no deliberate pauses between words, no word-by-word emphasis, and no exaggerated articulation. Keep the low vocal register while speaking continuously and naturally. " +
   "Do not imitate or reproduce any specific actor's voice.";
 
 export async function synthesizeHALSpeech(
@@ -39,7 +39,7 @@ export async function synthesizeHALSpeech(
         voice: options.voice ?? "onyx",
         input: cleanText.slice(0, 4096),
         instructions: options.instructions ?? DEFAULT_INSTRUCTIONS,
-        response_format: "mp3",\n        speed: 1.5,
+        response_format: "mp3",\n        speed: 1.75,
       }),
     },
   );
