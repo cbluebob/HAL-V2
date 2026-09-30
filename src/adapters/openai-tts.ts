@@ -14,8 +14,8 @@ export type HALVoiceOptions = {
 };
 
 const DEFAULT_INSTRUCTIONS =
-  "Speak French with a calm, precise, measured, neutral synthetic-computer delivery. " +
-  "Use a restrained emotional range, deliberate pacing, very clear articulation, and short pauses. " +
+  "Speak French with a low, deep, warm masculine register, calm, precise, measured, and neutral, like a sophisticated synthetic computer. " +
+  "Use a restrained emotional range, deliberate pacing, very clear articulation, short pauses, and a deliberately lower vocal register. " +
   "Do not imitate or reproduce any specific actor's voice.";
 
 export async function synthesizeHALSpeech(
