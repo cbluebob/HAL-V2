@@ -37,7 +37,7 @@ async function unlockAudio(){
 async function playSpeechBlob(blob){
   await unlockAudio();
   const url=URL.createObjectURL(blob), audio=new Audio(url);
-  audio.playbackRate=9.0;
+  audio.playbackRate=9.5;
   audio.preservesPitch=true;
   window.__halAudio=audio;
   await new Promise((resolve,reject)=>{
