@@ -81,6 +81,7 @@ async function recordTurn(){
   }catch(e){status.textContent="HAL_V4 — MICRO: "+(e&&e.message?e.message:"accès refusé");add("HAL","Accès au microphone impossible. Vérifiez l’autorisation du site.");conversationMode=false;talk.disabled=false}
 }
 async function playStreamSentence(text){
+  const p=document.createElement("p"); p.className="line hal"; p.textContent="HAL: "+text; conversation.appendChild(p); conversation.scrollTop=conversation.scrollHeight;
   const blob=await fetchSpeechChunk(text);
   speaking=true; stop.disabled=false; status.textContent="HAL_V4 — RÉPONSE";
   await playSpeechBlob(blob);
@@ -90,8 +91,7 @@ async function ask(text){
   const clean=text.trim(); if(!clean)return;
   add("VOUS",clean); history.push({role:"user",content:clean});
   status.textContent="HAL_V4 — ANALYSE"; talk.disabled=true; stop.disabled=false; eye.classList.remove("listening");
-  const halLine=document.createElement("p"); halLine.className="line hal"; halLine.textContent="HAL: "; conversation.appendChild(halLine);
-  let fullText="", speechBuffer="", streamDone=false;
+  let fullText="", speechBuffer="", streamFinished=false;
   const speakQueue=[]; let speakingQueue=false;
   const queueSpeech=async()=>{
     if(speakingQueue)return;
@@ -99,17 +99,18 @@ async function ask(text){
     try{
       while(speakQueue.length){
         const sentence=speakQueue.shift();
-        if(conversationMode===false && !speaking)return;
         await playStreamSentence(sentence);
       }
     }finally{speakingQueue=false}
   };
-  const flushSpeech=()=>{
-    const parts=speechBuffer.match(/^[\\s\\S]*?[.!?](?:\\s+|$)/);
-    if(!parts)return;
-    const sentence=parts[0].trim();
-    speechBuffer=speechBuffer.slice(parts[0].length).trimStart();
-    if(sentence.length>=8){speakQueue.push(sentence);void queueSpeech();}
+  const flushSentences=()=>{
+    const re=/^[\\s\\S]*?[.!?](?=\\s|$)/;
+    let match;
+    while((match=speechBuffer.match(re))){
+      const sentence=match[0].trim();
+      speechBuffer=speechBuffer.slice(match[0].length).trimStart();
+      if(sentence.length>=8){speakQueue.push(sentence);void queueSpeech();}
+    }
   };
   try{
     const context=history.slice(-8).map(m=>m.role==="user"?"Utilisateur: "+m.content:"HAL: "+m.content).join("\\n");
@@ -126,17 +127,14 @@ async function ask(text){
         const line=block.split("\\n").find(x=>x.startsWith("data:")); if(!line)continue;
         const data=JSON.parse(line.slice(5).trim());
         if(data.error) throw new Error(data.error);
-        if(data.delta){
-          fullText+=data.delta; speechBuffer+=data.delta; halLine.textContent="HAL: "+fullText;
-          conversation.scrollTop=conversation.scrollHeight; flushSpeech();
-        }
-        if(data.done)streamDone=true;
+        if(data.delta){fullText+=data.delta;speechBuffer+=data.delta;flushSentences();}
+        if(data.done)streamFinished=true;
       }
     }
     speechBuffer=speechBuffer.trim();
     if(speechBuffer){speakQueue.push(speechBuffer);void queueSpeech();}
     history.push({role:"assistant",content:fullText});
-    while(speakQueue.length||speakingQueue) await new Promise(resolve=>setTimeout(resolve,50));
+    while(speakQueue.length||speakingQueue) await new Promise(resolve=>setTimeout(resolve,40));
     speaking=false;
     if(conversationMode){status.textContent="HAL_V4 — ÉCOUTE";startListening()}else{status.textContent="HAL_V4 — STANDBY";stop.disabled=true}
   }catch(e){
