@@ -20,7 +20,7 @@ body{margin:0;background:#030506;color:#d7d7d7;font-family:ui-monospace,SFMono-R
 main{width:min(900px,94vw);padding:28px}
 header{text-align:center}
 #eye{width:150px;height:150px;margin:8px auto 22px;border-radius:50%;background:radial-gradient(circle,#ff5b5b 0 8%,#9b0000 10% 24%,#250000 25% 62%,#080808 64%);box-shadow:0 0 35px #9b000055,0 0 8px #ff000099;transition:.2s}
-#eye.listening{box-shadow:0 0 45px #ff0000aa,0 0 15px #ff4444}
+#eye.listening,#eye.active{box-shadow:0 0 60px #ff0000cc,0 0 22px #ff4444;animation:halPulse 1.2s ease-in-out infinite}@keyframes halPulse{0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.04);filter:brightness(1.45)}}
 #status{font-size:13px;letter-spacing:.12em;color:#8c8c8c;text-transform:uppercase}
 #conversation{margin:28px 0;min-height:180px;border:1px solid #242424;background:#080a0b;padding:18px;line-height:1.55;white-space:pre-wrap}
 .line{margin:0 0 14px}.you{color:#aaa}.hal{color:#eee}
