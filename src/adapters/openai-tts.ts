@@ -40,7 +40,7 @@ export async function synthesizeHALSpeech(
         input: cleanText.slice(0, 4096),
         instructions: options.instructions ?? DEFAULT_INSTRUCTIONS,
         response_format: "mp3",
-        speed: 1.0,
+        speed: 1.35,
       }),
     },
   );
