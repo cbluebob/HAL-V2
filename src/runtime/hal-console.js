@@ -122,7 +122,7 @@ async function ask(text){
       stop.disabled=false; await playSpeechBlob(blob);
     }
     speaking=false; eye.classList.remove("active"); setEye(false);
-    if(conversationMode){status.textContent="HAL_V4 — ÉCOUTE";startListening()}else{status.textContent="HAL_V4 — STANDBY";stop.disabled=true}
+    if(conversationMode){status.textContent="HAL_V4 — ÉCOUTE";setTimeout(recordTurn,300)}else{status.textContent="HAL_V4 — STANDBY";stop.disabled=true}
   }catch(e){
     speaking=false; eye.classList.remove("active"); setEye(false); add("HAL","Erreur: "+String(e.message||e)); status.textContent="HAL_V4 — ERREUR"; conversationMode=false; talk.disabled=false; stop.disabled=true;
   }
@@ -136,7 +136,7 @@ if(!Recognition){
   recognition.onresult=e=>{if(!micListening||speaking||!conversationMode)return;const result=e.results[e.results.length-1];if(!result||!result.isFinal)return;const transcript=result[0]?.transcript?.trim();if(transcript)ask(transcript)};
   recognition.onerror=e=>{eye.classList.remove("listening");if(conversationMode&&e.error!=="aborted"){status.textContent="HAL_V4 — MICROPHONE: "+e.error;setTimeout(startListening,800)}else{talk.disabled=false}};
   recognition.onend=()=>{micListening=false;eye.classList.remove("listening");if(conversationMode&&!speaking)setTimeout(startListening,700)};
-  talk.onclick=()=>{conversationMode=true;if(recognition){status.textContent="HAL_V4 — ÉCOUTE";startListening()}else{recordTurn()}};
+  talk.onclick=()=>{conversationMode=true;recordTurn()};
 }
 async function sendText(){const value=messageInput.value.trim();if(!value)return;messageInput.value="";await ask(value)}
 send.onclick=sendText;
