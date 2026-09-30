@@ -90,7 +90,9 @@ async function playStreamSentence(text){
   speaking=false;
 }
 async function ask(text){
-  const clean=text.trim(); if(!clean)return;
+  const clean=text.trim(); if(!clean||speaking)return;
+  speaking=true;
+  try{recognition&&recognition.stop()}catch{}
   add("VOUS",clean); history.push({role:"user",content:clean});
   status.textContent="HAL_V4 — ANALYSE"; eye.classList.add("active"); talk.disabled=true; stop.disabled=false; eye.classList.remove("listening"); setEye(true);
   const halLine=document.createElement("p"); halLine.className="line hal"; halLine.textContent="HAL: "; conversation.appendChild(halLine);
@@ -117,7 +119,7 @@ async function ask(text){
     if(fullText){
       status.textContent="HAL_V4 — RÉPONSE"; eye.classList.add("active"); setEye(true);
       const blob=await fetchSpeechChunk(fullText.slice(0,4096));
-      speaking=true; stop.disabled=false; await playSpeechBlob(blob);
+      stop.disabled=false; await playSpeechBlob(blob);
     }
     speaking=false; eye.classList.remove("active"); setEye(false);
     if(conversationMode){status.textContent="HAL_V4 — ÉCOUTE";startListening()}else{status.textContent="HAL_V4 — STANDBY";stop.disabled=true}
@@ -131,7 +133,7 @@ if(!Recognition){
 }else{
   try{ recognition=new Recognition(); recognition.lang="fr-FR"; recognition.interimResults=false; recognition.continuous=false; }catch(error){ recognition=null; talk.disabled=true; status.textContent="HAL_V4 — MICRO INDISPONIBLE"; add("HAL","Impossible d’initialiser la reconnaissance vocale : "+(error&&error.message?error.message:"erreur inconnue")); }
   recognition.onstart=()=>{restarting=false;eye.classList.add("listening");status.textContent="HAL_V4 — ÉCOUTE";talk.disabled=true;stop.disabled=false};
-  recognition.onresult=e=>ask(e.results[0][0].transcript);
+  recognition.onresult=e=>{if(!speaking)ask(e.results[0][0].transcript)};
   recognition.onerror=e=>{eye.classList.remove("listening");if(conversationMode&&e.error!=="aborted"){status.textContent="HAL_V4 — MICROPHONE: "+e.error;setTimeout(startListening,800)}else{talk.disabled=false}};
   recognition.onend=()=>{eye.classList.remove("listening");if(conversationMode&&!speaking)setTimeout(startListening,250)};
   talk.onclick=()=>{conversationMode=true;if(recognition){status.textContent="HAL_V4 — ÉCOUTE";startListening()}else{recordTurn()}};
