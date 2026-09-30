@@ -54,7 +54,7 @@ async function speak(text){
     if(window.__halAudio){try{window.__halAudio.pause()}catch{}window.__halAudio=null}
     throw e;
   }finally{
-    speaking=false;
+    speaking=false; eye.classList.remove("active");
     if(conversationMode){status.textContent="HAL_V4 — ÉCOUTE";startListening()}
     else{stop.disabled=true;status.textContent="HAL_V4 — STANDBY"}
   }
@@ -84,14 +84,14 @@ async function recordTurn(){
 }
 async function playStreamSentence(text){
   const blob=await fetchSpeechChunk(text);
-  speaking=true; stop.disabled=false; status.textContent="HAL_V4 — RÉPONSE";
+  speaking=true; stop.disabled=false; status.textContent="HAL_V4 — RÉPONSE"; eye.classList.add("active");
   await playSpeechBlob(blob);
   speaking=false;
 }
 async function ask(text){
   const clean=text.trim(); if(!clean)return;
   add("VOUS",clean); history.push({role:"user",content:clean});
-  status.textContent="HAL_V4 — ANALYSE"; talk.disabled=true; stop.disabled=false; eye.classList.remove("listening");
+  status.textContent="HAL_V4 — ANALYSE"; eye.classList.add("active"); talk.disabled=true; stop.disabled=false; eye.classList.remove("listening");
   const halLine=document.createElement("p"); halLine.className="line hal"; halLine.textContent="HAL: "; conversation.appendChild(halLine);
   let fullText="", speechBuffer="";
   const speakQueue=[]; let speakingQueue=false;
