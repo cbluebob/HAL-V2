@@ -142,7 +142,7 @@ export async function streamHostedAgentResponse(
   let status = "in_progress";
 
   const handleEvent = (raw: string) => {
-    const dataLine = raw.split("\\n").find((line) => line.startsWith("data:"));
+    const dataLine = raw.split("\n").find((line) => line.startsWith("data:"));
     if (!dataLine) return;
     const payload = dataLine.slice(5).trim();
     if (!payload || payload === "[DONE]") return;
@@ -162,7 +162,7 @@ export async function streamHostedAgentResponse(
     const { value, done } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
-    const events = buffer.split("\\n\\n");
+    const events = buffer.split("\n\n");
     buffer = events.pop() ?? "";
     for (const event of events) handleEvent(event);
   }
