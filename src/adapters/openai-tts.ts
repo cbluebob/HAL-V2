@@ -22,7 +22,7 @@ export async function synthesizeHALSpeech(
   text: string,
   options: HALVoiceOptions = {},
 ): Promise<Uint8Array> {
-  const cleanText = text.trim();
+  const cleanText = text.trim().replace(/[\\u{1F300}-\\u{1FAFF}\\u{2600}-\\u{27BF}]/gu, "").replace(/\\s{2,}/g, " ").trim();
   if (!cleanText) throw new Error("HAL speech text cannot be empty.");
 
   const apiKey = resolveApiKey(options.apiKey);
@@ -39,7 +39,7 @@ export async function synthesizeHALSpeech(
         voice: options.voice ?? "onyx",
         input: cleanText.slice(0, 4096),
         instructions: options.instructions ?? DEFAULT_INSTRUCTIONS,
-        response_format: "mp3",
+        response_format: "mp3",\n        speed: 1.2,
       }),
     },
   );
