@@ -1,4 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { readFile } from "node:fs/promises";
 import { synthesizeHALSpeech } from "../adapters/openai-tts";
 import { runHostedHALMission } from "../core/hosted-hal";
 
@@ -115,6 +116,12 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === "GET" && req.url === "/health") {
       sendJson(res, 200, { ok: true, service: "HAL_V4 voice console" });
+      return;
+    }
+    if (req.method === "GET" && new URL(req.url ?? "/", `http://${HOST}:${PORT}`).pathname === "/app.js") {
+      const appJs = await readFile(new URL("./hal-console.js", import.meta.url), "utf8");
+      res.writeHead(200, {"Content-Type":"application/javascript; charset=utf-8","Cache-Control":"no-store"});
+      res.end(appJs);
       return;
     }
     if (req.method === "GET" && req.url?.startsWith("/test")) {
